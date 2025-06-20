@@ -134,7 +134,7 @@ contract ChainlinkPriceOracle is IPriceOracle, Ownable {
     function getPriceAtTime(
         Currency token0,
         Currency token1,
-        uint256 timestamp
+        uint256 /* timestamp */
     ) external view override returns (uint256 price) {
         // For simplicity, return current price
         // In production, you'd implement historical price lookup

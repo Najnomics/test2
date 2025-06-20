@@ -15,13 +15,14 @@ import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {ModifyLiquidityParams, SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import {HookMiner} from "v4-periphery/src/utils/HookMiner.sol";
 
 contract MockPoolManager {
     function swap(
-        PoolKey calldata key,
-        SwapParams calldata params,
-        bytes calldata hookData
-    ) external returns (bytes4) {
+        PoolKey calldata /* key */,
+        SwapParams calldata /* params */,
+        bytes calldata /* hookData */
+    ) external pure returns (bytes4) {
         return bytes4(0);
     }
 }
@@ -137,15 +138,42 @@ contract EigenLVRHookTest is Test {
         });
         poolId = poolKey.toId();
         
-        // Deploy hook
+        // Calculate required flags for hook permissions
+        uint160 flags = uint160(
+            Hooks.BEFORE_ADD_LIQUIDITY_FLAG |
+            Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG |
+            Hooks.BEFORE_SWAP_FLAG |
+            Hooks.AFTER_SWAP_FLAG
+        );
+        
+        // Mine a valid hook address using HookMiner
+        bytes memory constructorArgs = abi.encode(
+            address(poolManager),
+            address(avsDirectory),
+            address(priceOracle),
+            feeRecipient,
+            LVR_THRESHOLD
+        );
+        
+        (address hookAddress, bytes32 salt) = HookMiner.find(
+            address(this),
+            flags,
+            type(EigenLVRHook).creationCode,
+            constructorArgs
+        );
+        
+        // Deploy hook at the mined address
         vm.prank(owner);
-        hook = new EigenLVRHook(
+        hook = new EigenLVRHook{salt: salt}(
             IPoolManager(address(poolManager)),
             avsDirectory,
             priceOracle,
             feeRecipient,
             LVR_THRESHOLD
         );
+        
+        // Verify the hook was deployed at the expected address
+        assertEq(address(hook), hookAddress);
         
         // Set up initial state
         vm.prank(owner);
@@ -160,7 +188,7 @@ contract EigenLVRHookTest is Test {
         vm.deal(lp, 10 ether);
     }
     
-    function test_Constructor() public {
+    function test_Constructor() public view {
         assertEq(address(hook.avsDirectory()), address(avsDirectory));
         assertEq(address(hook.priceOracle()), address(priceOracle));
         assertEq(hook.feeRecipient(), feeRecipient);
@@ -268,13 +296,13 @@ contract EigenLVRHookTest is Test {
         // Check auction state
         (
             PoolId auctionPoolId,
-            uint256 startTime,
-            uint256 duration,
+            , // startTime - unused
+            , // duration - unused
             bool isActive,
             bool isComplete,
             address winner,
             uint256 winningBid,
-            uint256 totalBids
+            // totalBids - unused
         ) = hook.auctions(auctionId);
         
         assertEq(PoolId.unwrap(auctionPoolId), PoolId.unwrap(poolId));
@@ -366,7 +394,7 @@ contract EigenLVRHookTest is Test {
         assertEq(address(hook).balance, balanceBefore + amount);
     }
     
-    function test_GetHookPermissions() public {
+    function test_GetHookPermissions() public view {
         Hooks.Permissions memory permissions = hook.getHookPermissions();
         
         assertTrue(permissions.beforeAddLiquidity);

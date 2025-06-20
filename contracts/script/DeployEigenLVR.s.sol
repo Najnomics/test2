@@ -66,13 +66,13 @@ contract DeployEigenLVR is Script {
         // Add price feeds (example for ETH/USDC)
         if (block.chainid == 11155111) { // Sepolia
             // Add Sepolia price feeds
-            address ethUsdFeed = 0x694AA1769357215DE4FAC081bf1f309aDC325306; // ETH/USD on Sepolia
             // Note: You'll need to convert this to ETH/USDC or find appropriate feeds
-            // priceOracle.addPriceFeed(token0, token1, ethUsdFeed);
+            // Example: priceOracle.addPriceFeed(token0, token1, 0x694AA1769357215DE4FAC081bf1f309aDC325306);
+            console.log("Sepolia network detected - configure price feeds manually");
         } else if (block.chainid == 1) { // Mainnet
             // Add mainnet price feeds
-            address ethUsdFeed = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419; // ETH/USD on Mainnet
-            // priceOracle.addPriceFeed(token0, token1, ethUsdFeed);
+            // Example: priceOracle.addPriceFeed(token0, token1, 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
+            console.log("Mainnet network detected - configure price feeds manually");
         }
         
         vm.stopBroadcast();

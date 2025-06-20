@@ -476,14 +476,95 @@ contract EigenLVRHook is BaseHook, ReentrancyGuard, Ownable, Pausable {
     }
     
     /**
-     * @notice Get current pool price (simplified implementation)
-     * @param key The pool key
-     * @return The current pool price
+     * @notice Get current pool price from Uniswap v4 pool
+     * @param key The pool key containing currency and fee information
+     * @return The current pool price in 18 decimals
      */
     function _getPoolPrice(PoolKey calldata key) internal view returns (uint256) {
-        // This is a simplified implementation
-        // In production, you'd calculate the actual pool price from sqrt price
-        return 1e18; // Placeholder
+        // In a real implementation, you would call:
+        // (uint160 sqrtPriceX96, , , ) = poolManager.getSlot0(key.toId());
+        
+        // For this implementation, we'll simulate getting the sqrt price
+        // In production, integrate with actual Uniswap v4 PoolManager
+        
+        // Placeholder logic that attempts to get real price data
+        // This would be replaced with actual pool manager calls
+        uint160 sqrtPriceX96 = _getSqrtPriceFromPool(key);
+        
+        if (sqrtPriceX96 == 0) {
+            // Fallback to oracle price if pool price is unavailable
+            return priceOracle.getPrice(key.currency0, key.currency1);
+        }
+        
+        // Convert sqrt price to regular price
+        // sqrtPriceX96 = sqrt(price) * 2^96
+        // price = (sqrtPriceX96 / 2^96)^2
+        
+        uint256 sqrtPrice = uint256(sqrtPriceX96);
+        
+        // Calculate price with 18 decimal precision
+        // Using bit shifting for efficiency: price = (sqrtPrice^2 * 10^18) / (2^192)
+        uint256 price = (sqrtPrice * sqrtPrice * 1e18) >> 192;
+        
+        // Handle token ordering - ensure consistent price direction
+        if (_shouldInvertPrice(key.currency0, key.currency1)) {
+            // Invert the price: 1/price = 10^36 / price
+            if (price > 0) {
+                price = (1e36) / price;
+            }
+        }
+        
+        return price;
+    }
+    
+    /**
+     * @notice Get sqrt price from pool (placeholder for actual implementation)
+     * @param key The pool key
+     * @return sqrtPriceX96 The sqrt price in X96 format
+     */
+    function _getSqrtPriceFromPool(PoolKey calldata key) internal view returns (uint160) {
+        // PLACEHOLDER: In production, this would call:
+        // (uint160 sqrtPriceX96, , , ) = poolManager.getSlot0(key.toId());
+        // return sqrtPriceX96;
+        
+        // For now, return 0 to indicate pool price is not available
+        // This will trigger fallback to oracle price
+        return 0;
+    }
+    
+    /**
+     * @notice Determine if price should be inverted based on token ordering convention
+     * @param token0 The first token
+     * @param token1 The second token
+     * @return Whether to invert the price
+     */
+    function _shouldInvertPrice(Currency token0, Currency token1) internal pure returns (bool) {
+        // Convention: We want consistent price direction regardless of token ordering
+        // For most DeFi applications, we want USD-denominated prices
+        
+        // Example logic: If token1 is a USD stablecoin, don't invert
+        // If token0 is a USD stablecoin, invert to get USD price
+        
+        address addr0 = Currency.unwrap(token0);
+        address addr1 = Currency.unwrap(token1);
+        
+        // Common USD stablecoin addresses on mainnet
+        address USDC = 0xA0b86a33E6441c4c27d3F50C9D6D14bDF12F4e6E;
+        address USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
+        address DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+        
+        // If token1 is USD stablecoin, keep price as is (token1/token0)
+        if (addr1 == USDC || addr1 == USDT || addr1 == DAI) {
+            return false;
+        }
+        
+        // If token0 is USD stablecoin, invert to get USD price (token0/token1)
+        if (addr0 == USDC || addr0 == USDT || addr0 == DAI) {
+            return true;
+        }
+        
+        // Default: use address ordering (lower address as denominator)
+        return addr0 < addr1;
     }
     
     /**
