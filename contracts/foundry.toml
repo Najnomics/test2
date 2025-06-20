@@ -5,17 +5,22 @@ libs = ["lib"]
 test = "test"
 script = "script"
 
+solc_version = '0.8.26'
+evm_version = "cancun"
+optimizer_runs = 800
+via_ir = false
+ffi = true
+
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
 
 [profile.default.model_checker]
-contracts = { '/path/to/project/src/Counter.sol' = [ 'Counter' ] }
 engine = 'chc'
 timeout = 10000
 targets = [ 'assert', 'underflow', 'overflow', 'divByZero', 'constantCondition', 'popEmptyArray', 'outOfBounds' ]
 
 [dependencies]
-forge-std = "1.8.2"
-openzeppelin-contracts = "5.0.2"
+forge-std = { version = "1.8.2" }
+openzeppelin-contracts = { version = "5.0.2" }
 
 [profile.default.fuzz]
 runs = 1000
@@ -32,5 +37,5 @@ base_sepolia = "${BASE_SEPOLIA_RPC_URL}"
 
 [etherscan]
 sepolia = { key = "${ETHERSCAN_API_KEY}" }
-mainnet = { key = "${ETHERSCAN_API_KEY}" }
+mainnet = { key = "${MAINNET_RPC_URL}" }
 base_sepolia = { key = "${BASESCAN_API_KEY}" }

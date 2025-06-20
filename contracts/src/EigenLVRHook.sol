@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.26;
 
-import {IPoolManager} from "@uniswap/v4-core/contracts/interfaces/IPoolManager.sol";
-import {PoolKey} from "@uniswap/v4-core/contracts/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/contracts/types/PoolId.sol";
-import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "@uniswap/v4-core/contracts/types/BeforeSwapDelta.sol";
-import {BaseHook} from "@uniswap/v4-periphery/contracts/BaseHook.sol";
-import {Hooks} from "@uniswap/v4-core/contracts/libraries/Hooks.sol";
-import {CurrencyLibrary, Currency} from "@uniswap/v4-core/contracts/types/Currency.sol";
-import {BalanceDelta} from "@uniswap/v4-core/contracts/types/BalanceDelta.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/src/types/PoolId.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
+import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {CurrencyLibrary, Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -17,7 +17,7 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {IAVSDirectory} from "./interfaces/IAVSDirectory.sol";
 import {IPriceOracle} from "./interfaces/IPriceOracle.sol";
 import {AuctionLib} from "./libraries/AuctionLib.sol";
-
+import {ModifyLiquidityParams, SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 /**
  * @title EigenLVRHook
  * @author EigenLVR Team
@@ -188,12 +188,12 @@ contract EigenLVRHook is BaseHook, ReentrancyGuard, Ownable, Pausable {
     /**
      * @notice Called before adding liquidity to track LP positions
      */
-    function beforeAddLiquidity(
+    function _beforeAddLiquidity(
         address sender,
         PoolKey calldata key,
-        IPoolManager.ModifyLiquidityParams calldata params,
+        ModifyLiquidityParams calldata params,
         bytes calldata
-    ) external override onlyByPoolManager returns (bytes4) {
+    ) internal override onlyPoolManager returns (bytes4) {
         PoolId poolId = key.toId();
         
         // Update LP liquidity tracking
@@ -204,16 +204,17 @@ contract EigenLVRHook is BaseHook, ReentrancyGuard, Ownable, Pausable {
         
         return this.beforeAddLiquidity.selector;
     }
+
     
     /**
      * @notice Called before removing liquidity to update LP positions
      */
-    function beforeRemoveLiquidity(
+    function _beforeRemoveLiquidity(
         address sender,
         PoolKey calldata key,
-        IPoolManager.ModifyLiquidityParams calldata params,
+        ModifyLiquidityParams calldata params,
         bytes calldata
-    ) external override onlyByPoolManager returns (bytes4) {
+    ) internal override onlyPoolManager returns (bytes4) {
         PoolId poolId = key.toId();
         
         // Update LP liquidity tracking
@@ -229,12 +230,12 @@ contract EigenLVRHook is BaseHook, ReentrancyGuard, Ownable, Pausable {
     /**
      * @notice Called before swap to potentially trigger LVR auction
      */
-    function beforeSwap(
+    function _beforeSwap(
         address,
         PoolKey calldata key,
-        IPoolManager.SwapParams calldata params,
+        SwapParams calldata params,
         bytes calldata
-    ) external override onlyByPoolManager whenNotPaused returns (bytes4, BeforeSwapDelta, uint24) {
+    ) internal override onlyPoolManager whenNotPaused returns (bytes4, BeforeSwapDelta, uint24) {
         PoolId poolId = key.toId();
         
         // Check if LVR threshold is exceeded
@@ -248,13 +249,13 @@ contract EigenLVRHook is BaseHook, ReentrancyGuard, Ownable, Pausable {
     /**
      * @notice Called after swap to handle auction results and distribute MEV
      */
-    function afterSwap(
+    function _afterSwap(
         address,
         PoolKey calldata key,
-        IPoolManager.SwapParams calldata,
+        SwapParams calldata,
         BalanceDelta,
         bytes calldata
-    ) external override onlyByPoolManager returns (bytes4, int128) {
+    ) internal override onlyPoolManager returns (bytes4, int128) {
         PoolId poolId = key.toId();
         bytes32 auctionId = activeAuctions[poolId];
         
@@ -459,7 +460,7 @@ contract EigenLVRHook is BaseHook, ReentrancyGuard, Ownable, Pausable {
      */
     function _shouldTriggerAuction(
         PoolKey calldata key,
-        IPoolManager.SwapParams calldata params
+        SwapParams calldata params
     ) internal view returns (bool) {
         // Get current pool price and external price
         uint256 poolPrice = _getPoolPrice(key);
@@ -490,7 +491,7 @@ contract EigenLVRHook is BaseHook, ReentrancyGuard, Ownable, Pausable {
      * @param params The swap parameters
      * @return Whether the swap is significant
      */
-    function _isSignificantSwap(IPoolManager.SwapParams calldata params) internal pure returns (bool) {
+    function _isSignificantSwap(SwapParams calldata params) internal pure returns (bool) {
         // Consider swaps above 1 ETH equivalent as significant
         return params.amountSpecified > 1e18 || params.amountSpecified < -1e18;
     }

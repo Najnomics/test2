@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.26;
 
 import {Script, console} from "forge-std/Script.sol";
 import {EigenLVRHook} from "../src/EigenLVRHook.sol";
 import {ChainlinkPriceOracle} from "../src/ChainlinkPriceOracle.sol";
 import {IAVSDirectory} from "../src/interfaces/IAVSDirectory.sol";
-
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 /**
  * @title DeployEigenLVR
  * @notice Deployment script for EigenLVR Hook and related contracts

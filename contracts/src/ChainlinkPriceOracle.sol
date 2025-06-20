@@ -1,9 +1,39 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.26;
 
 import {IPriceOracle} from "./interfaces/IPriceOracle.sol";
-import {Currency, CurrencyLibrary} from "@uniswap/v4-core/contracts/types/Currency.sol";
+import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
+/**
+ * @title AggregatorV3Interface
+ * @notice Chainlink price feed interface
+ */
+interface AggregatorV3Interface {
+    function decimals() external view returns (uint8);
+    function description() external view returns (string memory);
+    function version() external view returns (uint256);
+    function getRoundData(uint80 _roundId)
+        external
+        view
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        );
+    function latestRoundData()
+        external
+        view
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        );
+}
 
 /**
  * @title ChainlinkPriceOracle
@@ -11,36 +41,6 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  */
 contract ChainlinkPriceOracle is IPriceOracle, Ownable {
     using CurrencyLibrary for Currency;
-
-    /*//////////////////////////////////////////////////////////////
-                                INTERFACES
-    //////////////////////////////////////////////////////////////*/
-    
-    interface AggregatorV3Interface {
-        function decimals() external view returns (uint8);
-        function description() external view returns (string memory);
-        function version() external view returns (uint256);
-        function getRoundData(uint80 _roundId)
-            external
-            view
-            returns (
-                uint80 roundId,
-                int256 answer,
-                uint256 startedAt,
-                uint256 updatedAt,
-                uint80 answeredInRound
-            );
-        function latestRoundData()
-            external
-            view
-            returns (
-                uint80 roundId,
-                int256 answer,
-                uint256 startedAt,
-                uint256 updatedAt,
-                uint80 answeredInRound
-            );
-    }
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE

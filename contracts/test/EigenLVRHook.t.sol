@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import {EigenLVRHook} from "../src/EigenLVRHook.sol";
@@ -8,16 +8,18 @@ import {IAVSDirectory} from "../src/interfaces/IAVSDirectory.sol";
 import {IPriceOracle} from "../src/interfaces/IPriceOracle.sol";
 import {AuctionLib} from "../src/libraries/AuctionLib.sol";
 
-import {IPoolManager} from "@uniswap/v4-core/contracts/interfaces/IPoolManager.sol";
-import {PoolKey} from "@uniswap/v4-core/contracts/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/contracts/types/PoolId.sol";
-import {Currency, CurrencyLibrary} from "@uniswap/v4-core/contracts/types/Currency.sol";
-import {Hooks} from "@uniswap/v4-core/contracts/libraries/Hooks.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/src/types/PoolId.sol";
+import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {ModifyLiquidityParams, SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 
 contract MockPoolManager {
     function swap(
         PoolKey calldata key,
-        IPoolManager.SwapParams calldata params,
+        SwapParams calldata params,
         bytes calldata hookData
     ) external returns (bytes4) {
         return bytes4(0);
@@ -202,10 +204,11 @@ contract EigenLVRHookTest is Test {
     }
     
     function test_BeforeAddLiquidity() public {
-        IPoolManager.ModifyLiquidityParams memory params = IPoolManager.ModifyLiquidityParams({
+        ModifyLiquidityParams memory params = ModifyLiquidityParams({
             tickLower: -60,
             tickUpper: 60,
-            liquidityDelta: 1000e18
+            liquidityDelta: 1000e18,
+            salt: bytes32(0)
         });
         
         hook.beforeAddLiquidity(lp, poolKey, params, "");
@@ -216,19 +219,21 @@ contract EigenLVRHookTest is Test {
     
     function test_BeforeRemoveLiquidity() public {
         // First add liquidity
-        IPoolManager.ModifyLiquidityParams memory addParams = IPoolManager.ModifyLiquidityParams({
+        ModifyLiquidityParams memory addParams = ModifyLiquidityParams({
             tickLower: -60,
             tickUpper: 60,
-            liquidityDelta: 1000e18
+            liquidityDelta: 1000e18,
+            salt: bytes32(0)
         });
         
         hook.beforeAddLiquidity(lp, poolKey, addParams, "");
         
         // Then remove some
-        IPoolManager.ModifyLiquidityParams memory removeParams = IPoolManager.ModifyLiquidityParams({
+        ModifyLiquidityParams memory removeParams = ModifyLiquidityParams({
             tickLower: -60,
             tickUpper: 60,
-            liquidityDelta: -500e18
+            liquidityDelta: -500e18,
+            salt: bytes32(0)
         });
         
         hook.beforeRemoveLiquidity(lp, poolKey, removeParams, "");
@@ -242,7 +247,7 @@ contract EigenLVRHookTest is Test {
         priceOracle.setPrice(token0, token1, 1.1e18); // 10% increase
         
         // Simulate beforeSwap to start auction
-        IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams({
+        SwapParams memory swapParams = SwapParams({
             zeroForOne: true,
             amountSpecified: 2e18, // Significant swap
             sqrtPriceLimitX96: 0
@@ -289,10 +294,11 @@ contract EigenLVRHookTest is Test {
     
     function test_ClaimRewards() public {
         // Add liquidity first
-        IPoolManager.ModifyLiquidityParams memory params = IPoolManager.ModifyLiquidityParams({
+        ModifyLiquidityParams memory params = ModifyLiquidityParams({
             tickLower: -60,
             tickUpper: 60,
-            liquidityDelta: 1000e18
+            liquidityDelta: 1000e18,
+            salt: bytes32(0)
         });
         
         hook.beforeAddLiquidity(lp, poolKey, params, "");
@@ -305,7 +311,7 @@ contract EigenLVRHookTest is Test {
         vm.store(
             address(hook),
             keccak256(abi.encode(poolId, uint256(4))), // poolRewards mapping slot
-            bytes32(5 ether)
+            bytes32(uint256(5 ether))
         );
         
         uint256 lpBalanceBefore = lp.balance;
@@ -330,7 +336,7 @@ contract EigenLVRHookTest is Test {
         assertTrue(hook.paused());
         
         // Should revert when paused
-        IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams({
+        SwapParams memory swapParams = SwapParams({
             zeroForOne: true,
             amountSpecified: 2e18,
             sqrtPriceLimitX96: 0
@@ -379,7 +385,7 @@ contract EigenLVRHookTest is Test {
         // Set significant price deviation
         priceOracle.setPrice(token0, token1, 1.1e18); // 10% increase
         
-        IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams({
+        SwapParams memory swapParams = SwapParams({
             zeroForOne: true,
             amountSpecified: 2e18, // Significant swap
             sqrtPriceLimitX96: 0
@@ -396,7 +402,7 @@ contract EigenLVRHookTest is Test {
         // Set small price deviation (below threshold)
         priceOracle.setPrice(token0, token1, 1.001e18); // 0.1% increase
         
-        IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams({
+        SwapParams memory swapParams = SwapParams({
             zeroForOne: true,
             amountSpecified: 2e18,
             sqrtPriceLimitX96: 0
@@ -413,7 +419,7 @@ contract EigenLVRHookTest is Test {
         priceOracle.setPrice(token0, token1, 1.1e18); // 10% increase
         
         // But use small swap amount
-        IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams({
+        SwapParams memory swapParams = SwapParams({
             zeroForOne: true,
             amountSpecified: 0.1e18, // Small swap
             sqrtPriceLimitX96: 0
