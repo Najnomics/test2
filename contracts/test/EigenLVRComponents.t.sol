@@ -227,8 +227,7 @@ contract ChainlinkOracleIntegrationTest is Test {
     
     function test_StalePrice() public {
         // Set stale timestamp (older than 1 hour)
-        uint256 staleTime = block.timestamp > 3601 ? block.timestamp - 3601 : 0;
-        aggregator.setUpdatedAt(staleTime);
+        aggregator.setUpdatedAt(block.timestamp - 3601);
         
         vm.expectRevert(ChainlinkPriceOracle.StalePriceData.selector);
         oracle.getPrice(token0, token1);
