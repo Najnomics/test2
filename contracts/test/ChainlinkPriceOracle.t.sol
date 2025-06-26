@@ -205,8 +205,7 @@ contract ChainlinkPriceOracleComprehensiveTest is Test {
     }
     
     function test_GetPriceAtTime() public view {
-        uint256 targetTime = block.timestamp > 1000 ? block.timestamp - 1000 : 0;
-        uint256 price = oracle.getPriceAtTime(WETH, USDC, targetTime);
+        uint256 price = oracle.getPriceAtTime(WETH, USDC, block.timestamp - 1000);
         // Should return current price (simplified implementation)
         assertEq(price, 2000e18);
     }
