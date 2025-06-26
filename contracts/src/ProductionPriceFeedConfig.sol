@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {ChainlinkPriceOracle} from "./ChainlinkPriceOracle.sol";
-import {Currency} from "@uniswap/v4-core/types/Currency.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
