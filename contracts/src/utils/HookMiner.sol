@@ -25,7 +25,7 @@ library HookMiner {
     ) internal pure returns (address hookAddress, bytes32 salt) {
         bytes memory bytecode = abi.encodePacked(creationCode, constructorArgs);
         
-        for (uint256 i = 0; i < 1000000; i++) {
+        for (uint256 i = 0; i < 10000000; i++) {
             salt = bytes32(i);
             hookAddress = computeAddress(deployer, salt, bytecode);
             
