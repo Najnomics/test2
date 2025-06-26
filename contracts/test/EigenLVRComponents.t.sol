@@ -188,6 +188,9 @@ contract ChainlinkOracleIntegrationTest is Test {
     address public owner = address(0x1);
     
     function setUp() public {
+        // Warp to a reasonable timestamp to avoid underflows
+        vm.warp(86400); // 1 day in seconds
+        
         vm.prank(owner);
         oracle = new ChainlinkPriceOracle(owner);
         
