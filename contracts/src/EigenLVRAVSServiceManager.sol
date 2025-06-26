@@ -417,7 +417,11 @@ contract EigenLVRAVSServiceManager is Ownable, ReentrancyGuard {
      * @notice Withdraw contract balance (owner only)
      */
     function withdraw() external onlyOwner {
-        payable(owner()).transfer(address(this).balance);
+        uint256 balance = address(this).balance;
+        if (balance > 0) {
+            (bool success, ) = payable(owner()).call{value: balance}("");
+            require(success, "Transfer failed");
+        }
     }
     
     /**

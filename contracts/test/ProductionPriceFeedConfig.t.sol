@@ -17,11 +17,13 @@ contract ProductionPriceFeedConfigTest is Test {
     event PriceFeedRemoved(address indexed token0, address indexed token1);
     
     function setUp() public {
-        vm.prank(owner);
+        vm.startPrank(owner);
         oracle = new ChainlinkPriceOracle(owner);
-        
-        vm.prank(owner);
         config = new ProductionPriceFeedConfig(oracle);
+        
+        // Transfer oracle ownership to config contract so it can manage price feeds
+        oracle.transferOwnership(address(config));
+        vm.stopPrank();
     }
     
     function test_Constructor() public view {
@@ -426,10 +428,10 @@ contract ProductionPriceFeedConfigTest is Test {
     }
     
     function test_AddCustomPriceFeed_ZeroAddresses() public {
-        // Test behavior with zero addresses
+        // Test behavior with zero addresses - should revert
         vm.prank(owner);
+        vm.expectRevert("Invalid price feed address");
         config.addCustomPriceFeed(address(0), address(0), address(0));
-        // Should not revert, but may not be meaningful
     }
     
     function test_BatchOperations_LargeArray() public {

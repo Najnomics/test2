@@ -267,19 +267,7 @@ contract ProductionPriceFeedConfig is Ownable {
      * @notice Auto-configure for current network
      */
     function autoConfigureNetwork() external onlyOwner {
-        uint256 chainId = block.chainid;
-        
-        if (chainId == 1) {
-            configureMainnet();
-        } else if (chainId == 11155111) {
-            configureSepolia();
-        } else if (chainId == 8453) {
-            configureBase();
-        } else if (chainId == 42161) {
-            configureArbitrum();
-        } else {
-            revert("Unsupported network for auto-configuration");
-        }
+        _autoConfigureNetwork();
     }
     
     /**
@@ -331,6 +319,25 @@ contract ProductionPriceFeedConfig is Ownable {
      */
     function emergencyReconfigure() external onlyOwner {
         networkConfigured[block.chainid] = false;
-        this.autoConfigureNetwork();
+        _autoConfigureNetwork();
+    }
+    
+    /**
+     * @notice Internal function to auto-configure network without ownership check
+     */
+    function _autoConfigureNetwork() internal {
+        uint256 chainId = block.chainid;
+        
+        if (chainId == 1) {
+            configureMainnet();
+        } else if (chainId == 11155111) {
+            configureSepolia();
+        } else if (chainId == 8453) {
+            configureBase();
+        } else if (chainId == 42161) {
+            configureArbitrum();
+        } else {
+            revert("Unsupported network for auto-configuration");
+        }
     }
 }
