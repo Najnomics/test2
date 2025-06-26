@@ -336,15 +336,13 @@ contract ChainlinkPriceOracleComprehensiveTest is Test {
     
     function test_TimeBoundaryConditions() public {
         // Test exactly at staleness boundary
-        uint256 boundaryTime = block.timestamp > 3600 ? block.timestamp - 3600 : 0;
-        ethUsdFeed.setUpdatedAt(boundaryTime); // Exactly 1 hour ago
+        ethUsdFeed.setUpdatedAt(block.timestamp - 3600); // Exactly 1 hour ago
         
         bool isStale = oracle.isPriceStale(WETH, USDC);
         assertFalse(isStale); // Should not be stale at exactly 1 hour
         
         // Test just past staleness boundary
-        uint256 pastBoundaryTime = block.timestamp > 3601 ? block.timestamp - 3601 : 0;
-        ethUsdFeed.setUpdatedAt(pastBoundaryTime); // 1 second past 1 hour
+        ethUsdFeed.setUpdatedAt(block.timestamp - 3601); // 1 second past 1 hour
         
         isStale = oracle.isPriceStale(WETH, USDC);
         assertTrue(isStale); // Should be stale
