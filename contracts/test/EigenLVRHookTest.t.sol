@@ -8,12 +8,12 @@ import {IPriceOracle} from "../src/interfaces/IPriceOracle.sol";
 
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
-import {PoolKey} from "@uniswap/v4-core/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/types/PoolId.sol";
-import {Currency, CurrencyLibrary} from "@uniswap/v4-core/types/Currency.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/src/types/PoolId.sol";
+import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
-import {ModifyLiquidityParams, SwapParams} from "@uniswap/v4-core/types/PoolOperation.sol";
-import {BalanceDelta} from "@uniswap/v4-core/types/BalanceDelta.sol";
+import {ModifyLiquidityParams, SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 
 contract MockPoolManager {
     function unlock(bytes calldata data) external returns (bytes memory) {

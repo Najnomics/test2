@@ -5,8 +5,8 @@ import {Test, console} from "forge-std/Test.sol";
 import {EigenLVRHook} from "../src/EigenLVRHook.sol";
 import {ChainlinkPriceOracle} from "../src/ChainlinkPriceOracle.sol";
 import {AuctionLib} from "../src/libraries/AuctionLib.sol";
-import {Currency} from "@uniswap/v4-core/types/Currency.sol";
-import {PoolId} from "@uniswap/v4-core/types/PoolId.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 // Mock Chainlink aggregator for testing

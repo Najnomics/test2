@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 import {Test, console} from "forge-std/Test.sol";
 import {ChainlinkPriceOracle} from "../src/ChainlinkPriceOracle.sol";
 import {IPriceOracle} from "../src/interfaces/IPriceOracle.sol";
-import {Currency} from "@uniswap/v4-core/types/Currency.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 
 // Enhanced Mock Chainlink Aggregator for comprehensive testing
 contract MockChainlinkAggregator {
