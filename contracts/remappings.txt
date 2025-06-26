@@ -1,7 +1,7 @@
 @ensdomains/=lib/v4-periphery/lib/v4-core/node_modules/@ensdomains/
 @openzeppelin/=lib/v4-periphery/lib/v4-core/lib/openzeppelin-contracts/
 @openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
-@uniswap/v4-core/=lib/v4-periphery/lib/v4-core/src/
+@uniswap/v4-core/=lib/v4-periphery/lib/v4-core/
 chainlink-brownie-contracts/=lib/chainlink-brownie-contracts/
 ds-test/=lib/openzeppelin-contracts/lib/forge-std/lib/ds-test/src/
 erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/
