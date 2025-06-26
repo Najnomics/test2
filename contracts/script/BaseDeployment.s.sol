@@ -7,7 +7,7 @@ import {ChainlinkPriceOracle} from "../src/ChainlinkPriceOracle.sol";
 import {EigenLVRAVSServiceManager} from "../src/EigenLVRAVSServiceManager.sol";
 import {ProductionPriceFeedConfig} from "../src/ProductionPriceFeedConfig.sol";
 import {IAVSDirectory} from "../src/interfaces/IAVSDirectory.sol";
-import {IPoolManager} from "@uniswap/v4-core/interfaces/IPoolManager.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 
 /**
  * @title BaseDeployment
