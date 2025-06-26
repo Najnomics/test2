@@ -216,8 +216,7 @@ contract ChainlinkPriceOracleComprehensiveTest is Test {
     }
     
     function test_IsPriceStale_Stale() public {
-        uint256 staleTime = block.timestamp > 3601 ? block.timestamp - 3601 : 0;
-        ethUsdFeed.setUpdatedAt(staleTime);
+        ethUsdFeed.setUpdatedAt(block.timestamp - 3601);
         
         bool isStale = oracle.isPriceStale(WETH, USDC);
         assertTrue(isStale);
