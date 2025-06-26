@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import "./BaseDeployment.s.sol";
-import {Hooks} from "@uniswap/v4-core/libraries/Hooks.sol";
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {HookMiner} from "v4-periphery/src/utils/HookMiner.sol";
 
 /**
