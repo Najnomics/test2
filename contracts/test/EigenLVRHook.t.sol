@@ -9,13 +9,13 @@ import {IPriceOracle} from "../src/interfaces/IPriceOracle.sol";
 import {AuctionLib} from "../src/libraries/AuctionLib.sol";
 import {HookMiner} from "../src/utils/HookMiner.sol";
 
-import {IPoolManager} from "@uniswap/v4-core/interfaces/IPoolManager.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {PoolKey} from "@uniswap/v4-core/types/PoolKey.sol";
 import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/types/PoolId.sol";
 import {Currency, CurrencyLibrary} from "@uniswap/v4-core/types/Currency.sol";
 import {Hooks} from "@uniswap/v4-core/libraries/Hooks.sol";
 import {ModifyLiquidityParams, SwapParams} from "@uniswap/v4-core/types/PoolOperation.sol";
-import {IHooks} from "@uniswap/v4-core/interfaces/IHooks.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 
 contract MockPoolManager {
     function swap(
