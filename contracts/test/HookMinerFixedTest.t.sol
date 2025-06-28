@@ -252,6 +252,7 @@ contract HookMinerFixedTest is Test {
         
         assertTrue(uint160(hookAddress) & flags == flags);
         // If this test passes without running out of gas, we're good
+        assertTrue(salt != bytes32(0)); // Should find a valid salt
     }
     
     function test_Sequential_Different_Results() public pure {
