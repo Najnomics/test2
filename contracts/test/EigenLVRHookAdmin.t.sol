@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
-import {EigenLVRHook} from "../src/EigenLVRHook.sol";
+import {TestEigenLVRHook} from "./TestEigenLVRHook.sol";
 import {IAVSDirectory} from "../src/interfaces/IAVSDirectory.sol";
 import {IPriceOracle} from "../src/interfaces/IPriceOracle.sol";
 
@@ -24,7 +24,7 @@ import "./EigenLVRHook.t.sol";
 contract EigenLVRHookAdminTest is Test {
     using PoolIdLibrary for PoolKey;
 
-    EigenLVRHook public hook;
+    TestEigenLVRHook public hook;
     MockPoolManager public poolManager;
     MockAVSDirectory public avsDirectory;
     MockPriceOracle public priceOracle;
@@ -57,7 +57,7 @@ contract EigenLVRHookAdminTest is Test {
         priceOracle = new MockPriceOracle();
         
         vm.prank(owner);
-        hook = new EigenLVRHook(
+        hook = new TestEigenLVRHook(
             IPoolManager(address(poolManager)),
             avsDirectory,
             IPriceOracle(address(priceOracle)),

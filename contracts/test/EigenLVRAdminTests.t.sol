@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
-import {EigenLVRHook} from "../src/EigenLVRHook.sol";
+import {TestEigenLVRHook} from "./TestEigenLVRHook.sol";
 import {IAVSDirectory} from "../src/interfaces/IAVSDirectory.sol";
 import {IPriceOracle} from "../src/interfaces/IPriceOracle.sol";
 
@@ -50,7 +50,7 @@ contract MockPriceOracle {
  * @notice Tests all admin functions for 100% coverage
  */
 contract EigenLVRAdminTests is Test {
-    EigenLVRHook public hook;
+    TestEigenLVRHook public hook;
     MockPoolManager public poolManager;
     MockAVSDirectory public avsDirectory;
     MockPriceOracle public priceOracle;
@@ -69,7 +69,7 @@ contract EigenLVRAdminTests is Test {
         priceOracle = new MockPriceOracle();
         
         vm.prank(owner);
-        hook = new EigenLVRHook(
+        hook = new TestEigenLVRHook(
             IPoolManager(address(poolManager)),
             avsDirectory,
             IPriceOracle(address(priceOracle)),
@@ -293,7 +293,7 @@ contract EigenLVRAdminTests is Test {
                             HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
     
-    function _createTestAuction() internal returns (bytes32) {
+    function _createTestAuction() internal view returns (bytes32) {
         // Access internal auction creation logic by creating a specific auction ID
         bytes32 auctionId = keccak256(abi.encodePacked("test", block.timestamp, block.number));
         

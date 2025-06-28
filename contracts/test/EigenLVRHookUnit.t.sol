@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
-import {EigenLVRHook} from "../src/EigenLVRHook.sol";
+import {TestEigenLVRHook} from "./TestEigenLVRHook.sol";
 import {IAVSDirectory} from "../src/interfaces/IAVSDirectory.sol";
 import {IPriceOracle} from "../src/interfaces/IPriceOracle.sol";
 
@@ -13,102 +13,6 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {ModifyLiquidityParams, SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
-
-// Test wrapper to avoid hook address validation issues
-contract TestEigenLVRHook {
-    EigenLVRHook public hook;
-    
-    constructor(
-        address poolManager,
-        address avsDirectory,
-        address priceOracle,
-        address _feeRecipient,
-        uint256 lvrThreshold
-    ) {
-        // Deploy with CREATE (not CREATE2) to avoid address validation
-        hook = new EigenLVRHook(
-            IPoolManager(poolManager),
-            IAVSDirectory(avsDirectory),
-            IPriceOracle(priceOracle),
-            _feeRecipient,
-            lvrThreshold
-        );
-    }
-    
-    // Expose hook functions for testing
-    function getHookPermissions() external view returns (Hooks.Permissions memory) {
-        return hook.getHookPermissions();
-    }
-    
-    function owner() external view returns (address) {
-        return hook.owner();
-    }
-    
-    function feeRecipient() external view returns (address) {
-        return hook.feeRecipient();
-    }
-    
-    function lvrThreshold() external view returns (uint256) {
-        return hook.lvrThreshold();
-    }
-    
-    function authorizedOperators(address operator) external view returns (bool) {
-        return hook.authorizedOperators(operator);
-    }
-    
-    function setOperatorAuthorization(address operator, bool authorized) external {
-        hook.setOperatorAuthorization(operator, authorized);
-    }
-    
-    function setLVRThreshold(uint256 newThreshold) external {
-        hook.setLVRThreshold(newThreshold);
-    }
-    
-    function setFeeRecipient(address newFeeRecipient) external {
-        hook.setFeeRecipient(newFeeRecipient);
-    }
-    
-    function pause() external {
-        hook.pause();
-    }
-    
-    function unpause() external {
-        hook.unpause();
-    }
-    
-    function paused() external view returns (bool) {
-        return hook.paused();
-    }
-    
-    // Constants
-    function MIN_BID() external pure returns (uint256) {
-        return 1e15;
-    }
-    
-    function MAX_AUCTION_DURATION() external pure returns (uint256) {
-        return 12;
-    }
-    
-    function LP_REWARD_PERCENTAGE() external pure returns (uint256) {
-        return 8500;
-    }
-    
-    function AVS_REWARD_PERCENTAGE() external pure returns (uint256) {
-        return 1000;
-    }
-    
-    function PROTOCOL_FEE_PERCENTAGE() external pure returns (uint256) {
-        return 300;
-    }
-    
-    function GAS_COMPENSATION_PERCENTAGE() external pure returns (uint256) {
-        return 200;
-    }
-    
-    function BASIS_POINTS() external pure returns (uint256) {
-        return 10000;
-    }
-}
 
 contract MockAVSDirectory is IAVSDirectory {
     mapping(address => mapping(address => bool)) public operatorRegistered;
@@ -175,10 +79,10 @@ contract MockPoolManager {
 
 /**
  * @title EigenLVRHook Unit Tests
- * @notice Unit tests for EigenLVRHook functionality without hook address validation
+ * @notice Unit tests for EigenLVRHook functionality with proper hook deployment
  */
 contract EigenLVRHookUnitTest is Test {
-    TestEigenLVRHook public testHook;
+    TestEigenLVRHook public hook;
     MockPoolManager public poolManager;
     MockAVSDirectory public avsDirectory;
     MockPriceOracle public priceOracle;
@@ -199,10 +103,10 @@ contract EigenLVRHookUnitTest is Test {
         priceOracle = new MockPriceOracle();
         
         vm.prank(owner);
-        testHook = new TestEigenLVRHook(
-            address(poolManager),
-            address(avsDirectory),
-            address(priceOracle),
+        hook = new TestEigenLVRHook(
+            IPoolManager(address(poolManager)),
+            avsDirectory,
+            IPriceOracle(address(priceOracle)),
             feeRecipient,
             LVR_THRESHOLD
         );
@@ -213,9 +117,9 @@ contract EigenLVRHookUnitTest is Test {
     //////////////////////////////////////////////////////////////*/
     
     function test_Constructor() public view {
-        assertEq(testHook.owner(), owner);
-        assertEq(testHook.feeRecipient(), feeRecipient);
-        assertEq(testHook.lvrThreshold(), LVR_THRESHOLD);
+        assertEq(hook.owner(), owner);
+        assertEq(hook.feeRecipient(), feeRecipient);
+        assertEq(hook.lvrThreshold(), LVR_THRESHOLD);
     }
     
     /*//////////////////////////////////////////////////////////////
@@ -223,7 +127,7 @@ contract EigenLVRHookUnitTest is Test {
     //////////////////////////////////////////////////////////////*/
     
     function test_GetHookPermissions() public view {
-        Hooks.Permissions memory permissions = testHook.getHookPermissions();
+        Hooks.Permissions memory permissions = hook.getHookPermissions();
         
         assertFalse(permissions.beforeInitialize);
         assertFalse(permissions.afterInitialize);
@@ -247,112 +151,112 @@ contract EigenLVRHookUnitTest is Test {
     
     function test_SetOperatorAuthorization() public {
         vm.prank(owner);
-        testHook.setOperatorAuthorization(operator, true);
+        hook.setOperatorAuthorization(operator, true);
         
-        assertTrue(testHook.authorizedOperators(operator));
+        assertTrue(hook.authorizedOperators(operator));
     }
     
     function test_SetOperatorAuthorization_OnlyOwner() public {
         vm.prank(nonOwner);
         vm.expectRevert();
-        testHook.setOperatorAuthorization(operator, true);
+        hook.setOperatorAuthorization(operator, true);
     }
     
     function test_SetOperatorAuthorization_Deauthorize() public {
         // First authorize
         vm.prank(owner);
-        testHook.setOperatorAuthorization(operator, true);
-        assertTrue(testHook.authorizedOperators(operator));
+        hook.setOperatorAuthorization(operator, true);
+        assertTrue(hook.authorizedOperators(operator));
         
         // Then deauthorize
         vm.prank(owner);
-        testHook.setOperatorAuthorization(operator, false);
+        hook.setOperatorAuthorization(operator, false);
         
-        assertFalse(testHook.authorizedOperators(operator));
+        assertFalse(hook.authorizedOperators(operator));
     }
     
     function test_SetLVRThreshold() public {
         uint256 newThreshold = 100; // 1%
         
         vm.prank(owner);
-        testHook.setLVRThreshold(newThreshold);
+        hook.setLVRThreshold(newThreshold);
         
-        assertEq(testHook.lvrThreshold(), newThreshold);
+        assertEq(hook.lvrThreshold(), newThreshold);
     }
     
     function test_SetLVRThreshold_OnlyOwner() public {
         vm.prank(nonOwner);
         vm.expectRevert();
-        testHook.setLVRThreshold(100);
+        hook.setLVRThreshold(100);
     }
     
     function test_SetLVRThreshold_TooHigh() public {
         vm.prank(owner);
         vm.expectRevert("EigenLVR: threshold too high");
-        testHook.setLVRThreshold(1001); // > 10%
+        hook.setLVRThreshold(1001); // > 10%
     }
     
     function test_SetLVRThreshold_MaxAllowed() public {
         vm.prank(owner);
-        testHook.setLVRThreshold(1000); // Exactly 10%
+        hook.setLVRThreshold(1000); // Exactly 10%
         
-        assertEq(testHook.lvrThreshold(), 1000);
+        assertEq(hook.lvrThreshold(), 1000);
     }
     
     function test_SetFeeRecipient() public {
         address newFeeRecipient = address(0x999);
         
         vm.prank(owner);
-        testHook.setFeeRecipient(newFeeRecipient);
+        hook.setFeeRecipient(newFeeRecipient);
         
-        assertEq(testHook.feeRecipient(), newFeeRecipient);
+        assertEq(hook.feeRecipient(), newFeeRecipient);
     }
     
     function test_SetFeeRecipient_OnlyOwner() public {
         vm.prank(nonOwner);
         vm.expectRevert();
-        testHook.setFeeRecipient(address(0x999));
+        hook.setFeeRecipient(address(0x999));
     }
     
     function test_SetFeeRecipient_ZeroAddress() public {
         vm.prank(owner);
         vm.expectRevert("EigenLVR: invalid address");
-        testHook.setFeeRecipient(address(0));
+        hook.setFeeRecipient(address(0));
     }
     
     function test_Pause() public {
         vm.prank(owner);
-        testHook.pause();
+        hook.pause();
         
-        assertTrue(testHook.paused());
+        assertTrue(hook.paused());
     }
     
     function test_Pause_OnlyOwner() public {
         vm.prank(nonOwner);
         vm.expectRevert();
-        testHook.pause();
+        hook.pause();
     }
     
     function test_Unpause() public {
         // First pause
         vm.prank(owner);
-        testHook.pause();
-        assertTrue(testHook.paused());
+        hook.pause();
+        assertTrue(hook.paused());
         
         // Then unpause
         vm.prank(owner);
-        testHook.unpause();
+        hook.unpause();
         
-        assertFalse(testHook.paused());
+        assertFalse(hook.paused());
     }
     
     function test_Unpause_OnlyOwner() public {
         vm.prank(owner);
-        testHook.pause();
+        hook.pause();
         
         vm.prank(nonOwner);
         vm.expectRevert();
-        testHook.unpause();
+        hook.unpause();
     }
     
     /*//////////////////////////////////////////////////////////////
@@ -360,13 +264,13 @@ contract EigenLVRHookUnitTest is Test {
     //////////////////////////////////////////////////////////////*/
     
     function test_Constants() public view {
-        assertEq(testHook.MIN_BID(), 1e15);
-        assertEq(testHook.MAX_AUCTION_DURATION(), 12);
-        assertEq(testHook.LP_REWARD_PERCENTAGE(), 8500);
-        assertEq(testHook.AVS_REWARD_PERCENTAGE(), 1000);
-        assertEq(testHook.PROTOCOL_FEE_PERCENTAGE(), 300);
-        assertEq(testHook.GAS_COMPENSATION_PERCENTAGE(), 200);
-        assertEq(testHook.BASIS_POINTS(), 10000);
+        assertEq(hook.MIN_BID(), 1e15);
+        assertEq(hook.MAX_AUCTION_DURATION(), 12);
+        assertEq(hook.LP_REWARD_PERCENTAGE(), 8500);
+        assertEq(hook.AVS_REWARD_PERCENTAGE(), 1000);
+        assertEq(hook.PROTOCOL_FEE_PERCENTAGE(), 300);
+        assertEq(hook.GAS_COMPENSATION_PERCENTAGE(), 200);
+        assertEq(hook.BASIS_POINTS(), 10000);
     }
     
     /*//////////////////////////////////////////////////////////////
@@ -376,10 +280,10 @@ contract EigenLVRHookUnitTest is Test {
     function test_PercentageCalculations() public view {
         uint256 totalAmount = 100 ether;
         
-        uint256 lpAmount = (totalAmount * testHook.LP_REWARD_PERCENTAGE()) / testHook.BASIS_POINTS();
-        uint256 avsAmount = (totalAmount * testHook.AVS_REWARD_PERCENTAGE()) / testHook.BASIS_POINTS();
-        uint256 protocolAmount = (totalAmount * testHook.PROTOCOL_FEE_PERCENTAGE()) / testHook.BASIS_POINTS();
-        uint256 gasAmount = (totalAmount * testHook.GAS_COMPENSATION_PERCENTAGE()) / testHook.BASIS_POINTS();
+        uint256 lpAmount = (totalAmount * hook.LP_REWARD_PERCENTAGE()) / hook.BASIS_POINTS();
+        uint256 avsAmount = (totalAmount * hook.AVS_REWARD_PERCENTAGE()) / hook.BASIS_POINTS();
+        uint256 protocolAmount = (totalAmount * hook.PROTOCOL_FEE_PERCENTAGE()) / hook.BASIS_POINTS();
+        uint256 gasAmount = (totalAmount * hook.GAS_COMPENSATION_PERCENTAGE()) / hook.BASIS_POINTS();
         
         assertEq(lpAmount, 85 ether); // 85%
         assertEq(avsAmount, 10 ether); // 10%
@@ -393,10 +297,10 @@ contract EigenLVRHookUnitTest is Test {
     function test_PercentageCalculations_SmallAmounts() public view {
         uint256 totalAmount = 1000;
         
-        uint256 lpAmount = (totalAmount * testHook.LP_REWARD_PERCENTAGE()) / testHook.BASIS_POINTS();
-        uint256 avsAmount = (totalAmount * testHook.AVS_REWARD_PERCENTAGE()) / testHook.BASIS_POINTS();
-        uint256 protocolAmount = (totalAmount * testHook.PROTOCOL_FEE_PERCENTAGE()) / testHook.BASIS_POINTS();
-        uint256 gasAmount = (totalAmount * testHook.GAS_COMPENSATION_PERCENTAGE()) / testHook.BASIS_POINTS();
+        uint256 lpAmount = (totalAmount * hook.LP_REWARD_PERCENTAGE()) / hook.BASIS_POINTS();
+        uint256 avsAmount = (totalAmount * hook.AVS_REWARD_PERCENTAGE()) / hook.BASIS_POINTS();
+        uint256 protocolAmount = (totalAmount * hook.PROTOCOL_FEE_PERCENTAGE()) / hook.BASIS_POINTS();
+        uint256 gasAmount = (totalAmount * hook.GAS_COMPENSATION_PERCENTAGE()) / hook.BASIS_POINTS();
         
         assertEq(lpAmount, 850); // 85%
         assertEq(avsAmount, 100); // 10%
@@ -407,10 +311,10 @@ contract EigenLVRHookUnitTest is Test {
     function test_PercentageCalculations_ZeroAmount() public view {
         uint256 totalAmount = 0;
         
-        uint256 lpAmount = (totalAmount * testHook.LP_REWARD_PERCENTAGE()) / testHook.BASIS_POINTS();
-        uint256 avsAmount = (totalAmount * testHook.AVS_REWARD_PERCENTAGE()) / testHook.BASIS_POINTS();
-        uint256 protocolAmount = (totalAmount * testHook.PROTOCOL_FEE_PERCENTAGE()) / testHook.BASIS_POINTS();
-        uint256 gasAmount = (totalAmount * testHook.GAS_COMPENSATION_PERCENTAGE()) / testHook.BASIS_POINTS();
+        uint256 lpAmount = (totalAmount * hook.LP_REWARD_PERCENTAGE()) / hook.BASIS_POINTS();
+        uint256 avsAmount = (totalAmount * hook.AVS_REWARD_PERCENTAGE()) / hook.BASIS_POINTS();
+        uint256 protocolAmount = (totalAmount * hook.PROTOCOL_FEE_PERCENTAGE()) / hook.BASIS_POINTS();
+        uint256 gasAmount = (totalAmount * hook.GAS_COMPENSATION_PERCENTAGE()) / hook.BASIS_POINTS();
         
         assertEq(lpAmount, 0);
         assertEq(avsAmount, 0);
@@ -426,9 +330,9 @@ contract EigenLVRHookUnitTest is Test {
         vm.assume(threshold <= 1000); // Only test valid thresholds
         
         vm.prank(owner);
-        testHook.setLVRThreshold(threshold);
+        hook.setLVRThreshold(threshold);
         
-        assertEq(testHook.lvrThreshold(), threshold);
+        assertEq(hook.lvrThreshold(), threshold);
     }
     
     function testFuzz_SetLVRThreshold_Invalid(uint256 threshold) public {
@@ -436,16 +340,16 @@ contract EigenLVRHookUnitTest is Test {
         
         vm.prank(owner);
         vm.expectRevert("EigenLVR: threshold too high");
-        testHook.setLVRThreshold(threshold);
+        hook.setLVRThreshold(threshold);
     }
     
     function testFuzz_PercentageCalculations(uint256 amount) public view {
-        vm.assume(amount <= type(uint256).max / testHook.LP_REWARD_PERCENTAGE()); // Avoid overflow
+        vm.assume(amount <= type(uint256).max / hook.LP_REWARD_PERCENTAGE()); // Avoid overflow
         
-        uint256 lpAmount = (amount * testHook.LP_REWARD_PERCENTAGE()) / testHook.BASIS_POINTS();
-        uint256 avsAmount = (amount * testHook.AVS_REWARD_PERCENTAGE()) / testHook.BASIS_POINTS();
-        uint256 protocolAmount = (amount * testHook.PROTOCOL_FEE_PERCENTAGE()) / testHook.BASIS_POINTS();
-        uint256 gasAmount = (amount * testHook.GAS_COMPENSATION_PERCENTAGE()) / testHook.BASIS_POINTS();
+        uint256 lpAmount = (amount * hook.LP_REWARD_PERCENTAGE()) / hook.BASIS_POINTS();
+        uint256 avsAmount = (amount * hook.AVS_REWARD_PERCENTAGE()) / hook.BASIS_POINTS();
+        uint256 protocolAmount = (amount * hook.PROTOCOL_FEE_PERCENTAGE()) / hook.BASIS_POINTS();
+        uint256 gasAmount = (amount * hook.GAS_COMPENSATION_PERCENTAGE()) / hook.BASIS_POINTS();
         
         // Verify percentages are reasonable
         assertTrue(lpAmount <= amount);
@@ -470,26 +374,26 @@ contract EigenLVRHookUnitTest is Test {
         address operator3 = address(0x300);
         
         // Initially none are authorized
-        assertFalse(testHook.authorizedOperators(operator1));
-        assertFalse(testHook.authorizedOperators(operator2));
-        assertFalse(testHook.authorizedOperators(operator3));
+        assertFalse(hook.authorizedOperators(operator1));
+        assertFalse(hook.authorizedOperators(operator2));
+        assertFalse(hook.authorizedOperators(operator3));
         
         // Authorize operator1 and operator2
         vm.startPrank(owner);
-        testHook.setOperatorAuthorization(operator1, true);
-        testHook.setOperatorAuthorization(operator2, true);
+        hook.setOperatorAuthorization(operator1, true);
+        hook.setOperatorAuthorization(operator2, true);
         vm.stopPrank();
         
-        assertTrue(testHook.authorizedOperators(operator1));
-        assertTrue(testHook.authorizedOperators(operator2));
-        assertFalse(testHook.authorizedOperators(operator3));
+        assertTrue(hook.authorizedOperators(operator1));
+        assertTrue(hook.authorizedOperators(operator2));
+        assertFalse(hook.authorizedOperators(operator3));
         
         // Deauthorize operator1
         vm.prank(owner);
-        testHook.setOperatorAuthorization(operator1, false);
+        hook.setOperatorAuthorization(operator1, false);
         
-        assertFalse(testHook.authorizedOperators(operator1));
-        assertTrue(testHook.authorizedOperators(operator2));
-        assertFalse(testHook.authorizedOperators(operator3));
+        assertFalse(hook.authorizedOperators(operator1));
+        assertTrue(hook.authorizedOperators(operator2));
+        assertFalse(hook.authorizedOperators(operator3));
     }
 }

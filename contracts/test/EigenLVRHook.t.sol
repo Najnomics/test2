@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
-import {EigenLVRHook} from "../src/EigenLVRHook.sol";
+import {TestEigenLVRHook} from "./TestEigenLVRHook.sol";
 import {AuctionLib} from "../src/libraries/AuctionLib.sol";
 import {IAVSDirectory} from "../src/interfaces/IAVSDirectory.sol";
 import {IPriceOracle} from "../src/interfaces/IPriceOracle.sol";
@@ -118,7 +118,7 @@ contract EigenLVRHookTest is Test {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
 
-    EigenLVRHook public hook;
+    TestEigenLVRHook public hook;
     MockPoolManager public poolManager;
     MockAVSDirectory public avsDirectory;
     MockPriceOracle public priceOracle;
@@ -143,9 +143,9 @@ contract EigenLVRHookTest is Test {
         avsDirectory = new MockAVSDirectory();
         priceOracle = new MockPriceOracle();
         
-        // Deploy hook
+        // Deploy hook without address validation for testing
         vm.prank(owner);
-        hook = new EigenLVRHook(
+        hook = new TestEigenLVRHook(
             IPoolManager(address(poolManager)),
             avsDirectory,
             IPriceOracle(address(priceOracle)),
@@ -350,7 +350,7 @@ contract EigenLVRHookTest is Test {
             sqrtPriceLimitX96: 0
         });
         
-        hook.beforeSwap(user, poolKey, params, "");
+        hook.testBeforeSwap(user, poolKey, params, "");
         
         // Auction should be active
         bytes32 auctionId = hook.activeAuctions(poolId);
@@ -368,7 +368,7 @@ contract EigenLVRHookTest is Test {
         });
         
         vm.expectRevert();
-        hook.beforeSwap(user, poolKey, params, "");
+        hook.testBeforeSwap(user, poolKey, params, "");
     }
     
     function test_AfterSwap_NoActiveAuction() public {
@@ -420,7 +420,7 @@ contract EigenLVRHookTest is Test {
             amountSpecified: 2e18,
             sqrtPriceLimitX96: 0
         });
-        hook.beforeSwap(user, poolKey, params, "");
+        hook.testBeforeSwap(user, poolKey, params, "");
         
         bytes32 auctionId = hook.activeAuctions(poolId);
         

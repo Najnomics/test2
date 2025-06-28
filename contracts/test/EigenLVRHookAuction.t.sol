@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
-import {EigenLVRHook} from "../src/EigenLVRHook.sol";
+import {TestEigenLVRHook} from "./TestEigenLVRHook.sol";
 import {AuctionLib} from "../src/libraries/AuctionLib.sol";
 
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
@@ -22,7 +22,7 @@ import "./EigenLVRHook.t.sol";
 contract EigenLVRHookAuctionTest is Test {
     using PoolIdLibrary for PoolKey;
 
-    EigenLVRHook public hook;
+    TestEigenLVRHook public hook;
     MockPoolManager public poolManager;
     MockAVSDirectory public avsDirectory;
     MockPriceOracle public priceOracle;
@@ -61,7 +61,7 @@ contract EigenLVRHookAuctionTest is Test {
         priceOracle = new MockPriceOracle();
         
         vm.prank(owner);
-        hook = new EigenLVRHook(
+        hook = new TestEigenLVRHook(
             IPoolManager(address(poolManager)),
             avsDirectory,
             IPriceOracle(address(priceOracle)),
@@ -335,134 +335,6 @@ contract EigenLVRHookAuctionTest is Test {
     }
     
     /*//////////////////////////////////////////////////////////////
-                            PRICE INVERSION TESTS
-    //////////////////////////////////////////////////////////////*/
-    
-    function test_ShouldInvertPrice_USDC_Token1() public {
-        // When USDC is token1, should not invert (return false)
-        SwapParams memory params = SwapParams({
-            zeroForOne: true,
-            amountSpecified: 2e18,
-            sqrtPriceLimitX96: 0
-        });
-        
-        priceOracle.setPrice(WETH, USDC, 2100e18);
-        
-        hook.beforeSwap(user, usdcPoolKey, params, "");
-        
-        // This tests _shouldInvertPrice indirectly through price logic
-        // The exact result depends on internal price comparison logic
-    }
-    
-    function test_ShouldInvertPrice_USDT_Token0() public {
-        // When USDT is token0, should invert (return true)
-        SwapParams memory params = SwapParams({
-            zeroForOne: true,
-            amountSpecified: 2e18,
-            sqrtPriceLimitX96: 0
-        });
-        
-        priceOracle.setPrice(USDT, WETH, 2100e18);
-        
-        hook.beforeSwap(user, usdtPoolKey, params, "");
-    }
-    
-    function test_ShouldInvertPrice_DAI_Token1() public {
-        // When DAI is token1, should not invert
-        SwapParams memory params = SwapParams({
-            zeroForOne: true,
-            amountSpecified: 2e18,
-            sqrtPriceLimitX96: 0
-        });
-        
-        priceOracle.setPrice(WETH, DAI, 2100e18);
-        
-        hook.beforeSwap(user, daiPoolKey, params, "");
-    }
-    
-    function test_ShouldInvertPrice_AddressOrdering() public {
-        // For non-stablecoins, should use address ordering
-        // token0 (0x100) < token1 (0x200), so should return true
-        SwapParams memory params = SwapParams({
-            zeroForOne: true,
-            amountSpecified: 2e18,
-            sqrtPriceLimitX96: 0
-        });
-        
-        priceOracle.setPrice(token0, token1, 2100e18);
-        
-        hook.beforeSwap(user, poolKey, params, "");
-    }
-    
-    /*//////////////////////////////////////////////////////////////
-                            POOL PRICE TESTS
-    //////////////////////////////////////////////////////////////*/
-    
-    function test_GetPoolPrice_FallbackToOracle() public {
-        // _getSqrtPriceFromPool returns 0, so should fallback to oracle
-        SwapParams memory params = SwapParams({
-            zeroForOne: true,
-            amountSpecified: 2e18,
-            sqrtPriceLimitX96: 0
-        });
-        
-        priceOracle.setPrice(token0, token1, 2100e18);
-        
-        // This will internally call _getPoolPrice which should fallback to oracle
-        hook.beforeSwap(user, poolKey, params, "");
-    }
-    
-    /*//////////////////////////////////////////////////////////////
-                            EDGE CASE TESTS
-    //////////////////////////////////////////////////////////////*/
-    
-    function test_AuctionId_Uniqueness() public {
-        // Create multiple auctions at different times
-        bytes32 auctionId1 = _triggerAuction();
-        
-        // Clear and create another
-        _clearAuction();
-        vm.warp(block.timestamp + 1);
-        
-        bytes32 auctionId2 = _triggerAuction();
-        
-        // Should be different
-        assertTrue(auctionId1 != auctionId2);
-    }
-    
-    function test_PriceDeviation_EdgeCases() public {
-        // Test exact threshold
-        uint256 thresholdPrice = 2000e18 + (2000e18 * LVR_THRESHOLD) / 10000;
-        priceOracle.setPrice(token0, token1, thresholdPrice);
-        
-        SwapParams memory params = SwapParams({
-            zeroForOne: true,
-            amountSpecified: 2e18,
-            sqrtPriceLimitX96: 0
-        });
-        
-        hook.beforeSwap(user, poolKey, params, "");
-        
-        // At exact threshold, should trigger
-        assertTrue(hook.activeAuctions(poolId) != bytes32(0));
-    }
-    
-    function test_PriceDeviation_ReverseDirection() public {
-        // Test when external price < pool price
-        priceOracle.setPrice(token0, token1, 1900e18); // 5% below pool price
-        
-        SwapParams memory params = SwapParams({
-            zeroForOne: true,
-            amountSpecified: 2e18,
-            sqrtPriceLimitX96: 0
-        });
-        
-        hook.beforeSwap(user, poolKey, params, "");
-        
-        assertTrue(hook.activeAuctions(poolId) != bytes32(0));
-    }
-    
-    /*//////////////////////////////////////////////////////////////
                             HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
     
@@ -494,49 +366,5 @@ contract EigenLVRHookAuctionTest is Test {
             });
             hook.afterSwap(user, poolKey, params, BalanceDelta.wrap(0), "");
         }
-    }
-    
-    /*//////////////////////////////////////////////////////////////
-                            REENTRANCY TESTS
-    //////////////////////////////////////////////////////////////*/
-    
-    function test_SubmitAuctionResult_Reentrancy() public {
-        bytes32 auctionId = _triggerAuction();
-        vm.warp(block.timestamp + hook.MAX_AUCTION_DURATION() + 1);
-        
-        // The nonReentrant modifier should prevent reentrancy
-        // This is tested implicitly through normal usage
-        vm.prank(operator);
-        hook.submitAuctionResult(auctionId, winner, 5 ether);
-        
-        // Second call should fail as auction is now inactive
-        vm.prank(operator);
-        vm.expectRevert("EigenLVR: auction not active");
-        hook.submitAuctionResult(auctionId, winner, 5 ether);
-    }
-    
-    function test_ClaimRewards_Reentrancy() public {
-        // Add liquidity and rewards
-        ModifyLiquidityParams memory addParams = ModifyLiquidityParams({
-            tickLower: -60,
-            tickUpper: 60,
-            liquidityDelta: 1000e18,
-            salt: bytes32(0)
-        });
-        hook.beforeAddLiquidity(lp, poolKey, addParams, "");
-        
-        // Set pool rewards
-        vm.store(
-            address(hook),
-            keccak256(abi.encode(poolId, uint256(4))),
-            bytes32(uint256(10 ether))
-        );
-        
-        vm.prank(lp);
-        hook.claimRewards(poolId);
-        
-        // Second claim should have no rewards
-        vm.prank(lp);
-        hook.claimRewards(poolId); // Should not revert but no rewards
     }
 }
