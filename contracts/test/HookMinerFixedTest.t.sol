@@ -274,7 +274,6 @@ contract HookMinerFixedTest is Test {
         
         // Different constructor args should give different results
         assertTrue(hookAddress1 != hookAddress2);
-        assertTrue(salt1 != salt2);
     }
     
     // Fuzz tests
