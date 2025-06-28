@@ -99,6 +99,9 @@ library AuctionLib {
     function getTimeRemaining(Auction storage auction) internal view returns (uint256) {
         if (!auction.isActive) return 0;
         
+        // If auction hasn't started yet, return 0
+        if (block.timestamp < auction.startTime) return 0;
+        
         // Handle potential overflow in startTime + duration
         if (auction.duration == type(uint256).max) {
             // Special case: infinite duration
