@@ -25,7 +25,7 @@ contract HookMinerFixedTest is Test {
         );
         
         assertTrue(uint160(hookAddress) & flags == flags);
-        assertEq(salt, bytes32(0)); // Should find immediately with no flags
+            assertEq(salt, bytes32(0)); // Should find immediately with no flags
     }
     
     function test_Find_SingleFlag_BeforeSwap() public pure {
