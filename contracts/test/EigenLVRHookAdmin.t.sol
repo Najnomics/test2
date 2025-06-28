@@ -221,7 +221,7 @@ contract EigenLVRHookAdminTest is Test {
             amountSpecified: 2e18,
             sqrtPriceLimitX96: 0
         });
-        hook.beforeSwap(user, poolKey, params, "");
+        hook.testBeforeSwap(user, poolKey, params, "");
         
         bytes32 auctionId = hook.activeAuctions(poolId);
         
@@ -235,7 +235,7 @@ contract EigenLVRHookAdminTest is Test {
         emit AuctionEnded(auctionId, poolId, winner, winningBid);
         
         vm.prank(operator);
-        hook.submitAuctionResult(auctionId, winner, winningBid);
+        hook.testSubmitAuctionResult(auctionId, winner, winningBid);
         
         // Check auction state
         (
@@ -265,7 +265,7 @@ contract EigenLVRHookAdminTest is Test {
         
         vm.prank(nonOwner);
         vm.expectRevert("EigenLVR: unauthorized operator");
-        hook.submitAuctionResult(auctionId, address(0x777), 5 ether);
+        hook.testSubmitAuctionResult(auctionId, address(0x777), 5 ether);
     }
     
     function test_SubmitAuctionResult_InactiveAuction() public {
@@ -276,7 +276,7 @@ contract EigenLVRHookAdminTest is Test {
         
         vm.prank(operator);
         vm.expectRevert("EigenLVR: auction not active");
-        hook.submitAuctionResult(fakeAuctionId, address(0x777), 5 ether);
+        hook.testSubmitAuctionResult(fakeAuctionId, address(0x777), 5 ether);
     }
     
     function test_SubmitAuctionResult_AuctionNotEnded() public {
@@ -291,7 +291,7 @@ contract EigenLVRHookAdminTest is Test {
         // Don't fast forward time - auction still active
         vm.prank(operator);
         vm.expectRevert("EigenLVR: auction not ended");
-        hook.submitAuctionResult(auctionId, address(0x777), 5 ether);
+        hook.testSubmitAuctionResult(auctionId, address(0x777), 5 ether);
     }
     
     /*//////////////////////////////////////////////////////////////
@@ -306,15 +306,11 @@ contract EigenLVRHookAdminTest is Test {
             liquidityDelta: 1000e18,
             salt: bytes32(0)
         });
-        hook.beforeAddLiquidity(lp, poolKey, addParams, "");
+        hook.testBeforeAddLiquidity(lp, poolKey, addParams, "");
         
         // Manually set pool rewards for testing
         uint256 rewardAmount = 10 ether;
-        vm.store(
-            address(hook),
-            keccak256(abi.encode(poolId, uint256(4))), // poolRewards slot
-            bytes32(rewardAmount)
-        );
+        hook.testSetPoolRewards(poolId, rewardAmount);
         
         uint256 balanceBefore = lp.balance;
         
@@ -322,7 +318,7 @@ contract EigenLVRHookAdminTest is Test {
         emit RewardsClaimed(poolId, lp, rewardAmount);
         
         vm.prank(lp);
-        hook.claimRewards(poolId);
+        hook.testClaimRewards(poolId);
         
         uint256 balanceAfter = lp.balance;
         assertEq(balanceAfter - balanceBefore, rewardAmount);
@@ -342,12 +338,12 @@ contract EigenLVRHookAdminTest is Test {
             liquidityDelta: 1000e18,
             salt: bytes32(0)
         });
-        hook.beforeAddLiquidity(lp, poolKey, addParams, "");
+        hook.testBeforeAddLiquidity(lp, poolKey, addParams, "");
         
         uint256 balanceBefore = lp.balance;
         
         vm.prank(lp);
-        hook.claimRewards(poolId);
+        hook.testClaimRewards(poolId);
         
         uint256 balanceAfter = lp.balance;
         assertEq(balanceAfter, balanceBefore); // No change
@@ -364,7 +360,7 @@ contract EigenLVRHookAdminTest is Test {
             amountSpecified: 2e18,
             sqrtPriceLimitX96: 0
         });
-        hook.beforeSwap(user, poolKey, params, "");
+        hook.testBeforeSwap(user, poolKey, params, "");
     }
     
     /*//////////////////////////////////////////////////////////////

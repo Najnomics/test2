@@ -158,7 +158,7 @@ contract EigenLVRHookAuctionTest is Test {
         vm.deal(address(hook), bidAmount);
         
         vm.prank(operator);
-        hook.submitAuctionResult(auctionId, winner, bidAmount);
+        hook.testSubmitAuctionResult(auctionId, winner, bidAmount);
         
         // Check auction completion
         (, , , isActive, isComplete, auctionWinner, winningBid, ) = hook.auctions(auctionId);
@@ -178,7 +178,7 @@ contract EigenLVRHookAuctionTest is Test {
         uint256 operatorBalanceBefore = operator.balance;
         
         vm.prank(operator);
-        hook.afterSwap(user, poolKey, params, BalanceDelta.wrap(0), "");
+        hook.testAfterSwap(user, poolKey, params, BalanceDelta.wrap(0), "");
         
         // Check MEV distribution
         uint256 lpAmount = (bidAmount * hook.LP_REWARD_PERCENTAGE()) / hook.BASIS_POINTS();
@@ -205,7 +205,7 @@ contract EigenLVRHookAuctionTest is Test {
         
         // This should not create a new auction (no revert, but no new auction either)
         // The beforeSwap will detect existing auction and not start new one
-        hook.beforeSwap(user, poolKey, params, "");
+        hook.testBeforeSwap(user, poolKey, params, "");
         
         // Should still have the original auction
         bytes32 auctionId = hook.activeAuctions(poolId);
@@ -219,7 +219,7 @@ contract EigenLVRHookAuctionTest is Test {
         
         // Submit zero bid
         vm.prank(operator);
-        hook.submitAuctionResult(auctionId, winner, 0);
+        hook.testSubmitAuctionResult(auctionId, winner, 0);
         
         // Process via afterSwap
         SwapParams memory params = SwapParams({
@@ -230,7 +230,7 @@ contract EigenLVRHookAuctionTest is Test {
         
         uint256 poolRewardsBefore = hook.poolRewards(poolId);
         
-        hook.afterSwap(user, poolKey, params, BalanceDelta.wrap(0), "");
+        hook.testAfterSwap(user, poolKey, params, BalanceDelta.wrap(0), "");
         
         // No rewards should be distributed for zero bid
         assertEq(hook.poolRewards(poolId), poolRewardsBefore);
@@ -243,7 +243,8 @@ contract EigenLVRHookAuctionTest is Test {
     
     function test_ShouldTriggerAuction_True() public {
         // Set up price deviation above threshold
-        priceOracle.setPrice(token0, token1, 2100e18); // 5% deviation (above 0.5% threshold)
+        priceOracle.setPrice(token0, token1, 2100e18); // Oracle: 2100 USD
+        hook.setMockPoolPrice(poolKey, 2000e18); // Pool: 2000 USD = 5% deviation
         
         SwapParams memory params = SwapParams({
             zeroForOne: true,
@@ -252,7 +253,7 @@ contract EigenLVRHookAuctionTest is Test {
         });
         
         // Call beforeSwap which internally calls _shouldTriggerAuction
-        hook.beforeSwap(user, poolKey, params, "");
+        hook.testBeforeSwap(user, poolKey, params, "");
         
         // Should have triggered auction
         assertTrue(hook.activeAuctions(poolId) != bytes32(0));
@@ -260,7 +261,8 @@ contract EigenLVRHookAuctionTest is Test {
     
     function test_ShouldTriggerAuction_False_SmallDeviation() public {
         // Set up small price deviation
-        priceOracle.setPrice(token0, token1, 2005e18); // 0.25% deviation (below 0.5% threshold)
+        priceOracle.setPrice(token0, token1, 2005e18); // Oracle: 2005 USD  
+        hook.setMockPoolPrice(poolKey, 2000e18); // Pool: 2000 USD = 0.25% deviation (below 0.5% threshold)
         
         SwapParams memory params = SwapParams({
             zeroForOne: true,
@@ -268,7 +270,7 @@ contract EigenLVRHookAuctionTest is Test {
             sqrtPriceLimitX96: 0
         });
         
-        hook.beforeSwap(user, poolKey, params, "");
+        hook.testBeforeSwap(user, poolKey, params, "");
         
         // Should not trigger auction
         assertEq(hook.activeAuctions(poolId), bytes32(0));
@@ -276,7 +278,8 @@ contract EigenLVRHookAuctionTest is Test {
     
     function test_ShouldTriggerAuction_False_SmallSwap() public {
         // Set up large price deviation
-        priceOracle.setPrice(token0, token1, 2100e18); // 5% deviation
+        priceOracle.setPrice(token0, token1, 2100e18); // Oracle: 2100 USD
+        hook.setMockPoolPrice(poolKey, 2000e18); // Pool: 2000 USD = 5% deviation
         
         SwapParams memory params = SwapParams({
             zeroForOne: true,
@@ -284,7 +287,7 @@ contract EigenLVRHookAuctionTest is Test {
             sqrtPriceLimitX96: 0
         });
         
-        hook.beforeSwap(user, poolKey, params, "");
+        hook.testBeforeSwap(user, poolKey, params, "");
         
         // Should not trigger auction due to small swap size
         assertEq(hook.activeAuctions(poolId), bytes32(0));
@@ -313,24 +316,25 @@ contract EigenLVRHookAuctionTest is Test {
         });
         
         // Trigger with different swap sizes to test _isSignificantSwap indirectly
-        priceOracle.setPrice(token0, token1, 2100e18); // 5% deviation
+        priceOracle.setPrice(token0, token1, 2100e18); // Oracle: 2100 USD
+        hook.setMockPoolPrice(poolKey, 2000e18); // Pool: 2000 USD = 5% deviation
         
         // Significant positive
-        hook.beforeSwap(user, poolKey, params1, "");
+        hook.testBeforeSwap(user, poolKey, params1, "");
         assertTrue(hook.activeAuctions(poolId) != bytes32(0));
         
         // Clear auction for next test
         _clearAuction();
         
         // Significant negative  
-        hook.beforeSwap(user, poolKey, params2, "");
+        hook.testBeforeSwap(user, poolKey, params2, "");
         assertTrue(hook.activeAuctions(poolId) != bytes32(0));
         
         // Clear auction for next test
         _clearAuction();
         
         // Insignificant
-        hook.beforeSwap(user, poolKey, params3, "");
+        hook.testBeforeSwap(user, poolKey, params3, "");
         assertEq(hook.activeAuctions(poolId), bytes32(0));
     }
     
@@ -339,7 +343,8 @@ contract EigenLVRHookAuctionTest is Test {
     //////////////////////////////////////////////////////////////*/
     
     function _triggerAuction() internal returns (bytes32) {
-        priceOracle.setPrice(token0, token1, 2100e18); // 5% deviation
+        priceOracle.setPrice(token0, token1, 2100e18); // Oracle: 2100 USD
+        hook.setMockPoolPrice(poolKey, 2000e18); // Pool: 2000 USD = 5% deviation
         
         SwapParams memory params = SwapParams({
             zeroForOne: true,
@@ -347,7 +352,7 @@ contract EigenLVRHookAuctionTest is Test {
             sqrtPriceLimitX96: 0
         });
         
-        hook.beforeSwap(user, poolKey, params, "");
+        hook.testBeforeSwap(user, poolKey, params, "");
         
         return hook.activeAuctions(poolId);
     }
@@ -357,14 +362,14 @@ contract EigenLVRHookAuctionTest is Test {
         if (auctionId != bytes32(0)) {
             vm.warp(block.timestamp + hook.MAX_AUCTION_DURATION() + 1);
             vm.prank(operator);
-            hook.submitAuctionResult(auctionId, winner, 1 ether);
+            hook.testSubmitAuctionResult(auctionId, winner, 1 ether);
             
             SwapParams memory params = SwapParams({
                 zeroForOne: true,
                 amountSpecified: 1e18,
                 sqrtPriceLimitX96: 0
             });
-            hook.afterSwap(user, poolKey, params, BalanceDelta.wrap(0), "");
+            hook.testAfterSwap(user, poolKey, params, BalanceDelta.wrap(0), "");
         }
     }
 }

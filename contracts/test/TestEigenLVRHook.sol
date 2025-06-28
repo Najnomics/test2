@@ -2,11 +2,13 @@
 pragma solidity ^0.8.26;
 
 import {EigenLVRHook} from "../src/EigenLVRHook.sol";
+import {AuctionLib} from "../src/libraries/AuctionLib.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {IAVSDirectory} from "../src/interfaces/IAVSDirectory.sol";
 import {IPriceOracle} from "../src/interfaces/IPriceOracle.sol";
 import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
 import {ModifyLiquidityParams, SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
@@ -92,5 +94,57 @@ contract TestEigenLVRHook is EigenLVRHook {
         bytes calldata hookData
     ) external returns (bytes4, int128) {
         return _afterSwap(sender, key, params, delta, hookData);
+    }
+    
+    // Additional test wrapper functions to bypass onlyPoolManager checks
+    function testClaimRewards(PoolId poolId) external {
+        // Call the function directly, not through this.
+        claimRewards(poolId);
+    }
+    
+    function testSubmitAuctionResult(
+        bytes32 auctionId,
+        address winner,
+        uint256 winningBid
+    ) external {
+        // Call the function directly, not through this.
+        submitAuctionResult(auctionId, winner, winningBid);
+    }
+    
+    // Direct access functions for testing internal state
+    function testSetPoolRewards(PoolId poolId, uint256 amount) external {
+        poolRewards[poolId] = amount;
+    }
+    
+    function testSetLpLiquidity(PoolId poolId, address lp, uint256 amount) external {
+        lpLiquidity[poolId][lp] = amount;
+    }
+    
+    function testSetTotalLiquidity(PoolId poolId, uint256 amount) external {
+        totalLiquidity[poolId] = amount;
+    }
+    
+    function testSetActiveAuction(PoolId poolId, bytes32 auctionId) external {
+        activeAuctions[poolId] = auctionId;
+    }
+    
+    function testCreateAuction(
+        PoolId poolId,
+        bytes32 auctionId,
+        uint256 startTime,
+        uint256 duration,
+        bool isActive,
+        bool isComplete
+    ) external {
+        auctions[auctionId] = AuctionLib.Auction({
+            poolId: poolId,
+            startTime: startTime,
+            duration: duration,
+            isActive: isActive,
+            isComplete: isComplete,
+            winner: address(0),
+            winningBid: 0,
+            totalBids: 0
+        });
     }
 }
