@@ -351,7 +351,7 @@ contract UnitTestsForCoverage is Test {
         address bidder,
         uint256 amount,
         uint256 nonce
-    ) public pure {
+    ) public {
         // Prevent overflow by limiting inputs
         vm.assume(amount < type(uint256).max - 1);
         vm.assume(nonce < type(uint256).max - 1);
