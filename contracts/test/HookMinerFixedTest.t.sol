@@ -265,7 +265,7 @@ contract HookMinerFixedTest is Test {
             hex"0000000000000000000000000000000000000000000000000000000000000001"
         );
         
-        (address hookAddress2, bytes32 salt2) = HookMinerFixed.find(
+        (address hookAddress2,) = HookMinerFixed.find(
             address(0x1),
             flags,
             hex"608060405234801561001057600080fd5b50",
