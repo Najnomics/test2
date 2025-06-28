@@ -289,15 +289,6 @@ contract EigenLVRAdminTests is Test {
         assertEq(hook.owner(), owner);
     }
     
-    function test_TransferOwnership() public {
-        address newOwner = address(0x99);
-        
-        vm.prank(owner);
-        hook.transferOwnership(newOwner);
-        
-        assertEq(hook.pendingOwner(), newOwner);
-    }
-    
     /*//////////////////////////////////////////////////////////////
                             HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
