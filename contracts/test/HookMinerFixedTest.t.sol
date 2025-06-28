@@ -243,7 +243,7 @@ contract HookMinerFixedTest is Test {
         // Test that mining doesn't use excessive gas
         uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
         
-        (address hookAddress,) = HookMinerFixed.find(
+        (address hookAddress, bytes32 salt) = HookMinerFixed.find(
             address(0x1),
             flags,
             hex"60806040",
