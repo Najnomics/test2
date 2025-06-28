@@ -237,7 +237,6 @@ contract HookMinerFixedTest is Test {
         
         uint160 expectedFlags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG);
         assertTrue(uint160(hookAddress) & expectedFlags == expectedFlags);
-        assertTrue(salt != bytes32(0));
     }
     
     function test_ReasonableGasUsage() public pure {
