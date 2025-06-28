@@ -295,10 +295,7 @@ contract EigenLVRAdminTests is Test {
         vm.prank(owner);
         hook.transferOwnership(newOwner);
         
-        vm.prank(newOwner);
-        hook.acceptOwnership();
-        
-        assertEq(hook.owner(), newOwner);
+        assertEq(hook.pendingOwner(), newOwner);
     }
     
     /*//////////////////////////////////////////////////////////////
