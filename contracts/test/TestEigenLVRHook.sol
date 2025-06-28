@@ -98,8 +98,8 @@ contract TestEigenLVRHook is EigenLVRHook {
     
     // Additional test wrapper functions to bypass onlyPoolManager checks
     function testClaimRewards(PoolId poolId) external {
-        // Call the function from parent contract
-        this.claimRewards(poolId);
+        // For testing, call the function directly
+        claimRewards(poolId);
     }
     
     function testSubmitAuctionResult(
