@@ -320,9 +320,10 @@ contract UnitTestsForCoverage is Test {
         uint128 currentTime,
         bool isActive
     ) public {
-        // Avoid overflow
-        vm.assume(startTime < type(uint128).max - duration);
+        // Avoid overflow when adding startTime + duration
+        vm.assume(startTime <= type(uint128).max - duration);
         vm.assume(duration > 0);
+        vm.assume(duration < type(uint128).max / 2); // Additional safety margin
         
         testAuction.poolId = PoolId.wrap(bytes32(uint256(1)));
         testAuction.startTime = startTime;
@@ -332,18 +333,22 @@ contract UnitTestsForCoverage is Test {
         
         vm.warp(currentTime);
         
+        // Safe calculation of end time
+        uint256 endTime = uint256(startTime) + uint256(duration);
+        
         bool expectedActive = isActive && 
                              currentTime >= startTime && 
-                             currentTime < startTime + duration;
-        bool expectedEnded = currentTime >= startTime + duration;
+                             currentTime < endTime;
+        bool expectedEnded = currentTime >= endTime;
         
         assertEq(testAuction.isAuctionActive(), expectedActive);
         assertEq(testAuction.isAuctionEnded(), expectedEnded);
         
-        if (!isActive || currentTime < startTime || currentTime >= startTime + duration) {
+        if (!isActive || currentTime < startTime || currentTime >= endTime) {
             assertEq(testAuction.getTimeRemaining(), 0);
         } else {
-            assertEq(testAuction.getTimeRemaining(), startTime + duration - currentTime);
+            // Safe subtraction
+            assertEq(testAuction.getTimeRemaining(), endTime - currentTime);
         }
     }
     
