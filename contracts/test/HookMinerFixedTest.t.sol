@@ -17,7 +17,7 @@ contract HookMinerFixedTest is Test {
     function test_Find_NoFlags() public pure {
         uint160 flags = 0;
         
-        (address hookAddress,) = HookMinerFixed.find(
+        (address hookAddress, bytes32 salt) = HookMinerFixed.find(
             address(0x1),
             flags,
             hex"608060405234801561001057600080fd5b50",
@@ -25,7 +25,7 @@ contract HookMinerFixedTest is Test {
         );
         
         assertTrue(uint160(hookAddress) & flags == flags);
-            assertEq(salt, bytes32(0)); // Should find immediately with no flags
+        assertEq(salt, bytes32(0)); // Should find immediately with no flags
     }
     
     function test_Find_SingleFlag_BeforeSwap() public pure {
