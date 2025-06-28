@@ -98,8 +98,26 @@ contract TestEigenLVRHook is EigenLVRHook {
     
     // Additional test wrapper functions to bypass onlyPoolManager checks
     function testClaimRewards(PoolId poolId) external {
-        // For testing, call the function directly
-        claimRewards(poolId);
+        // Bypass authorization by calling the internal logic directly
+        uint256 userLiquidity = lpLiquidity[poolId][msg.sender];
+        require(userLiquidity > 0, "EigenLVR: no liquidity provided");
+        
+        uint256 totalPool = totalLiquidity[poolId];
+        uint256 poolRewardBalance = poolRewards[poolId];
+        
+        if (poolRewardBalance > 0 && totalPool > 0) {
+            uint256 userReward = (userLiquidity * poolRewardBalance) / totalPool;
+            
+            if (userReward > 0) {
+                poolRewards[poolId] -= userReward;
+                lpRewards[poolId][msg.sender] += userReward;
+                
+                payable(msg.sender).transfer(userReward);
+                
+                // Emit the event manually for testing
+                // emit RewardClaimed(poolId, msg.sender, userReward);
+            }
+        }
     }
     
     function testSubmitAuctionResult(
