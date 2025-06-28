@@ -45,7 +45,7 @@ contract HookMinerFixedTest is Test {
     function test_Find_SingleFlag_AfterSwap() public pure {
         uint160 flags = uint160(Hooks.AFTER_SWAP_FLAG);
         
-        (address hookAddress, bytes32 salt) = HookMinerFixed.find(
+        (address hookAddress,) = HookMinerFixed.find(
             address(0x1),
             flags,
             hex"608060405234801561001057600080fd5b50",
