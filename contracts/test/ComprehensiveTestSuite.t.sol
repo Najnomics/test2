@@ -19,16 +19,15 @@ contract ComprehensiveTestSuite is Test {
     //////////////////////////////////////////////////////////////*/
     
     function test_AuctionLib_BasicFunctionality() public {
-        AuctionLib.Auction memory auction = AuctionLib.Auction({
-            poolId: PoolId.wrap(bytes32(uint256(1))),
-            startTime: 1000,
-            duration: 500,
-            isActive: true,
-            isComplete: false,
-            winner: address(0),
-            winningBid: 0,
-            totalBids: 0
-        });
+        AuctionLib.Auction storage auction = testAuction;
+        auction.poolId = PoolId.wrap(bytes32(uint256(1)));
+        auction.startTime = 1000;
+        auction.duration = 500;
+        auction.isActive = true;
+        auction.isComplete = false;
+        auction.winner = address(0);
+        auction.winningBid = 0;
+        auction.totalBids = 0;
         
         // Test before start
         vm.warp(500);
