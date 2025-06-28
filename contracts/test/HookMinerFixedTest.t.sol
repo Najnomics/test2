@@ -290,7 +290,7 @@ contract HookMinerFixedTest is Test {
     function testFuzz_Find_ValidFlags_Limited(uint16 flags) public {
         // Limit to reasonable flag values to avoid gas issues
         if (flags == 0) {
-            (address hookAddress,) = HookMinerFixed.find(
+            (address hookAddress, bytes32 salt) = HookMinerFixed.find(
                 address(0x1),
                 uint160(flags),
                 hex"60806040",
