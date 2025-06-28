@@ -225,7 +225,7 @@ contract HookMinerFixedTest is Test {
     }
     
     function test_MineAddress() public pure {
-        (address hookAddress, bytes32 salt) = HookMinerFixed.mineAddress(
+        (address hookAddress,) = HookMinerFixed.mineAddress(
             address(0x1),
             true,  // beforeSwap
             true,  // afterSwap
