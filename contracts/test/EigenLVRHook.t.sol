@@ -136,6 +136,9 @@ contract EigenLVRHookTest is Test {
     PoolId public poolId;
     
     uint256 public constant LVR_THRESHOLD = 50; // 0.5%
+    
+    // Add payable receive function to handle ETH transfers
+    receive() external payable {}
 
     function setUp() public {
         // Deploy mock contracts
@@ -221,7 +224,7 @@ contract EigenLVRHookTest is Test {
             salt: bytes32(0)
         });
         
-        bytes4 selector = hook.beforeAddLiquidity(lp, poolKey, params, "");
+        bytes4 selector = hook.testBeforeAddLiquidity(lp, poolKey, params, "");
         
         assertEq(selector, hook.beforeAddLiquidity.selector);
         assertEq(hook.lpLiquidity(poolId, lp), 1000e18);
@@ -236,7 +239,7 @@ contract EigenLVRHookTest is Test {
             salt: bytes32(0)
         });
         
-        hook.beforeAddLiquidity(lp, poolKey, params, "");
+        hook.testBeforeAddLiquidity(lp, poolKey, params, "");
         
         assertEq(hook.lpLiquidity(poolId, lp), 0);
         assertEq(hook.totalLiquidity(poolId), 0);
@@ -259,8 +262,8 @@ contract EigenLVRHookTest is Test {
             salt: bytes32(0)
         });
         
-        hook.beforeAddLiquidity(lp, poolKey, params1, "");
-        hook.beforeAddLiquidity(lp2, poolKey, params2, "");
+        hook.testBeforeAddLiquidity(lp, poolKey, params1, "");
+        hook.testBeforeAddLiquidity(lp2, poolKey, params2, "");
         
         assertEq(hook.lpLiquidity(poolId, lp), 1000e18);
         assertEq(hook.lpLiquidity(poolId, lp2), 500e18);
@@ -275,7 +278,7 @@ contract EigenLVRHookTest is Test {
             liquidityDelta: 1000e18,
             salt: bytes32(0)
         });
-        hook.beforeAddLiquidity(lp, poolKey, addParams, "");
+        hook.testBeforeAddLiquidity(lp, poolKey, addParams, "");
         
         // Then remove liquidity
         ModifyLiquidityParams memory removeParams = ModifyLiquidityParams({
@@ -285,7 +288,7 @@ contract EigenLVRHookTest is Test {
             salt: bytes32(0)
         });
         
-        bytes4 selector = hook.beforeRemoveLiquidity(lp, poolKey, removeParams, "");
+        bytes4 selector = hook.testBeforeRemoveLiquidity(lp, poolKey, removeParams, "");
         
         assertEq(selector, hook.beforeRemoveLiquidity.selector);
         assertEq(hook.lpLiquidity(poolId, lp), 500e18);
@@ -300,7 +303,7 @@ contract EigenLVRHookTest is Test {
             liquidityDelta: 1000e18,
             salt: bytes32(0)
         });
-        hook.beforeAddLiquidity(lp, poolKey, addParams, "");
+        hook.testBeforeAddLiquidity(lp, poolKey, addParams, "");
         
         // Try to remove zero liquidity
         ModifyLiquidityParams memory removeParams = ModifyLiquidityParams({
@@ -310,7 +313,7 @@ contract EigenLVRHookTest is Test {
             salt: bytes32(0)
         });
         
-        hook.beforeRemoveLiquidity(lp, poolKey, removeParams, "");
+        hook.testBeforeRemoveLiquidity(lp, poolKey, removeParams, "");
         
         // Should remain unchanged
         assertEq(hook.lpLiquidity(poolId, lp), 1000e18);
@@ -328,7 +331,7 @@ contract EigenLVRHookTest is Test {
             sqrtPriceLimitX96: 0
         });
         
-        (bytes4 selector, BeforeSwapDelta delta, uint24 fee) = hook.beforeSwap(
+        (bytes4 selector, BeforeSwapDelta delta, uint24 fee) = hook.testBeforeSwap(
             user, poolKey, params, ""
         );
         
@@ -342,7 +345,9 @@ contract EigenLVRHookTest is Test {
     
     function test_BeforeSwap_TriggerAuction() public {
         // Set up conditions for auction trigger (significant swap + price deviation)
-        priceOracle.setPrice(token0, token1, 2100e18); // 5% price deviation
+        // Set mock pool price to create deviation
+        hook.setMockPoolPrice(poolKey, 2000e18); // Pool price: 2000
+        priceOracle.setPrice(token0, token1, 2100e18); // Oracle price: 2100 (5% deviation)
         
         SwapParams memory params = SwapParams({
             zeroForOne: true,
@@ -378,7 +383,7 @@ contract EigenLVRHookTest is Test {
             sqrtPriceLimitX96: 0
         });
         
-        (bytes4 selector, int128 delta) = hook.afterSwap(
+        (bytes4 selector, int128 delta) = hook.testAfterSwap(
             user, poolKey, params, BalanceDelta.wrap(0), ""
         );
         
@@ -398,7 +403,7 @@ contract EigenLVRHookTest is Test {
         
         uint256 initialBalance = address(hook).balance;
         
-        hook.afterSwap(user, poolKey, params, BalanceDelta.wrap(0), "");
+        hook.testAfterSwap(user, poolKey, params, BalanceDelta.wrap(0), "");
         
         // Auction should be cleared
         assertEq(hook.activeAuctions(poolId), bytes32(0));
@@ -413,8 +418,10 @@ contract EigenLVRHookTest is Test {
         vm.prank(owner);
         hook.setOperatorAuthorization(operator, true);
         
-        // Create auction by triggering a swap
-        priceOracle.setPrice(token0, token1, 2100e18); // 5% deviation
+        // Create auction by triggering a swap with price deviation
+        hook.setMockPoolPrice(poolKey, 2000e18); // Pool price: 2000
+        priceOracle.setPrice(token0, token1, 2100e18); // Oracle price: 2100 (5% deviation)
+        
         SwapParams memory params = SwapParams({
             zeroForOne: true,
             amountSpecified: 2e18,

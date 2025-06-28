@@ -25,7 +25,15 @@ library HookMiner {
     ) internal pure returns (address hookAddress, bytes32 salt) {
         bytes memory bytecode = abi.encodePacked(creationCode, constructorArgs);
         
-        for (uint256 i = 0; i < 10000000; i++) {
+        // If no flags are required, return the first valid address
+        if (flags == 0) {
+            salt = bytes32(0);
+            hookAddress = computeAddress(deployer, salt, bytecode);
+            return (hookAddress, salt);
+        }
+        
+        // Increase iteration limit for flag mining
+        for (uint256 i = 0; i < 100000000; i++) {
             salt = bytes32(i);
             hookAddress = computeAddress(deployer, salt, bytecode);
             

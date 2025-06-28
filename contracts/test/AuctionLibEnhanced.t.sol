@@ -41,7 +41,9 @@ contract AuctionLibEnhancedTest is Test {
     
     function test_IsAuctionActive_InfiniteDuration_AfterStart() public {
         testAuction.duration = type(uint256).max;
-        testAuction.startTime = block.timestamp - 100; // Past start
+        // Use safe timestamp to avoid underflow
+        testAuction.startTime = 1000;
+        vm.warp(1100); // 100 seconds after start
         
         bool isActive = testAuction.isAuctionActive();
         assertTrue(isActive); // Should be active with infinite duration
@@ -59,6 +61,9 @@ contract AuctionLibEnhancedTest is Test {
         // Set up conditions where startTime + duration would overflow
         testAuction.startTime = type(uint256).max - 50;
         testAuction.duration = 100; // This would overflow
+        
+        // Warp to after start time for overflow protection to kick in
+        vm.warp(type(uint256).max - 25); // After start time
         
         // But since we're past start time, should be active with "infinite" end
         bool isActive = testAuction.isAuctionActive();
@@ -81,6 +86,9 @@ contract AuctionLibEnhancedTest is Test {
         // Test exact overflow boundary
         testAuction.startTime = type(uint256).max - 10;
         testAuction.duration = 11; // Exactly overflow
+        
+        // Warp to after start time
+        vm.warp(type(uint256).max - 5);
         
         bool isActive = testAuction.isAuctionActive();
         assertTrue(isActive); // Should treat as infinite duration
@@ -153,7 +161,9 @@ contract AuctionLibEnhancedTest is Test {
     
     function test_GetTimeRemaining_InfiniteDuration_AfterStart() public {
         testAuction.duration = type(uint256).max;
-        testAuction.startTime = block.timestamp - 100;
+        // Use a safe past timestamp to avoid underflow
+        testAuction.startTime = 1000;
+        vm.warp(1100); // 100 seconds after start
         
         uint256 timeRemaining = testAuction.getTimeRemaining();
         assertEq(timeRemaining, type(uint256).max); // Infinite time remaining
@@ -182,6 +192,9 @@ contract AuctionLibEnhancedTest is Test {
         testAuction.startTime = type(uint256).max - 50;
         testAuction.duration = 100;
         
+        // Need to warp to after start time
+        vm.warp(type(uint256).max - 25); // After start time
+        
         uint256 timeRemaining = testAuction.getTimeRemaining();
         assertEq(timeRemaining, type(uint256).max); // Treated as infinite
     }
@@ -189,6 +202,9 @@ contract AuctionLibEnhancedTest is Test {
     function test_GetTimeRemaining_ExactOverflowBoundary() public {
         testAuction.startTime = type(uint256).max - 10;
         testAuction.duration = 11;
+        
+        // Need to warp to after start time for overflow protection to kick in
+        vm.warp(type(uint256).max - 5); // After start time
         
         uint256 timeRemaining = testAuction.getTimeRemaining();
         assertEq(timeRemaining, type(uint256).max); // Overflow, treated as infinite
@@ -233,29 +249,33 @@ contract AuctionLibEnhancedTest is Test {
         
         // Case 1: isActive = false (first condition fails)
         testAuction.isActive = false;
-        testAuction.startTime = block.timestamp;
+        testAuction.startTime = 1000;
         testAuction.duration = 100;
+        vm.warp(1050);
         
         assertFalse(testAuction.isAuctionActive());
         
         // Case 2: isActive = true, before start (second condition fails)
         testAuction.isActive = true;
-        testAuction.startTime = block.timestamp + 100;
+        testAuction.startTime = 2000;
         testAuction.duration = 100;
+        vm.warp(1900); // Before start
         
         assertFalse(testAuction.isAuctionActive());
         
         // Case 3: isActive = true, after end (third condition fails)
         testAuction.isActive = true;
-        testAuction.startTime = block.timestamp - 200;
+        testAuction.startTime = 1000;
         testAuction.duration = 100;
+        vm.warp(1200); // After end
         
         assertFalse(testAuction.isAuctionActive());
         
         // Case 4: All conditions true
         testAuction.isActive = true;
-        testAuction.startTime = block.timestamp - 50;
+        testAuction.startTime = 1000;
         testAuction.duration = 100;
+        vm.warp(1050); // During auction
         
         assertTrue(testAuction.isAuctionActive());
     }
@@ -263,10 +283,11 @@ contract AuctionLibEnhancedTest is Test {
     function test_TimeCalculation_BoundaryConditions() public {
         // Test exact boundaries for all time calculations
         
-        uint256 currentTime = block.timestamp;
+        uint256 currentTime = 1500; // Use fixed time
+        vm.warp(currentTime);
         
         // Test startTime + duration = current time (boundary)
-        testAuction.startTime = currentTime - 100;
+        testAuction.startTime = 1400; // currentTime - 100
         testAuction.duration = 100;
         
         // At exact end time
@@ -275,13 +296,13 @@ contract AuctionLibEnhancedTest is Test {
         assertEq(testAuction.getTimeRemaining(), 0);
         
         // Just before end time
-        vm.warp(currentTime - 1);
+        vm.warp(1499); // currentTime - 1
         assertTrue(testAuction.isAuctionActive());
         assertFalse(testAuction.isAuctionEnded());
         assertEq(testAuction.getTimeRemaining(), 1);
         
         // Just after end time
-        vm.warp(currentTime + 1);
+        vm.warp(1501); // currentTime + 1
         assertFalse(testAuction.isAuctionActive());
         assertTrue(testAuction.isAuctionEnded());
         assertEq(testAuction.getTimeRemaining(), 0);

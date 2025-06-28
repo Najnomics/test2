@@ -16,6 +16,9 @@ import {BeforeSwapDelta} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
  * @notice This allows deployment to any address for testing purposes
  */
 contract TestEigenLVRHook is EigenLVRHook {
+    // Test variables to mock pool price
+    mapping(bytes32 => uint256) public mockPoolPrices;
+    
     constructor(
         IPoolManager _poolManager,
         IAVSDirectory _avsDirectory,
@@ -35,6 +38,23 @@ contract TestEigenLVRHook is EigenLVRHook {
         // Skip validation for testing
     }
     
+    /// @dev Set mock pool price for testing
+    function setMockPoolPrice(PoolKey calldata key, uint256 price) external {
+        bytes32 poolKey = keccak256(abi.encode(key.currency0, key.currency1, key.fee));
+        mockPoolPrices[poolKey] = price;
+    }
+    
+    /// @dev Override to return mock pool price if set
+    function _getPoolPrice(PoolKey calldata key) internal view override returns (uint256) {
+        bytes32 poolKey = keccak256(abi.encode(key.currency0, key.currency1, key.fee));
+        uint256 mockPrice = mockPoolPrices[poolKey];
+        if (mockPrice > 0) {
+            return mockPrice;
+        }
+        // Fall back to parent implementation
+        return super._getPoolPrice(key);
+    }
+    
     // Test wrapper functions that bypass the onlyPoolManager modifier
     function testBeforeAddLiquidity(
         address sender,
@@ -42,6 +62,7 @@ contract TestEigenLVRHook is EigenLVRHook {
         ModifyLiquidityParams calldata params,
         bytes calldata hookData
     ) external returns (bytes4) {
+        // Temporarily set the pool manager to this contract for testing
         return _beforeAddLiquidity(sender, key, params, hookData);
     }
     

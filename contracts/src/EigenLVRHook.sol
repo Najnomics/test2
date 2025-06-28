@@ -479,7 +479,7 @@ contract EigenLVRHook is BaseHook, ReentrancyGuard, Ownable, Pausable {
      * @param key The pool key containing currency and fee information
      * @return The current pool price in 18 decimals
      */
-    function _getPoolPrice(PoolKey calldata key) internal view returns (uint256) {
+    function _getPoolPrice(PoolKey calldata key) internal view virtual returns (uint256) {
         // In a real implementation, you would call:
         // (uint160 sqrtPriceX96, , , ) = poolManager.getSlot0(key.toId());
         
