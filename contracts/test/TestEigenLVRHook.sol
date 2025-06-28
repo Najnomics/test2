@@ -107,8 +107,9 @@ contract TestEigenLVRHook is EigenLVRHook {
         address winner,
         uint256 winningBid
     ) external {
-        // Call the function from parent contract
-        this.submitAuctionResult(auctionId, winner, winningBid);
+        // For testing, we need to ensure the caller is authorized
+        // The test should call this function from an authorized operator
+        submitAuctionResult(auctionId, winner, winningBid);
     }
     
     // Direct access functions for testing internal state
