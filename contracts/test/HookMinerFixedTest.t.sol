@@ -258,7 +258,7 @@ contract HookMinerFixedTest is Test {
     function test_Sequential_Different_Results() public pure {
         uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
         
-        (address hookAddress1, bytes32 salt1) = HookMinerFixed.find(
+        (address hookAddress1,) = HookMinerFixed.find(
             address(0x1),
             flags,
             hex"608060405234801561001057600080fd5b50",
