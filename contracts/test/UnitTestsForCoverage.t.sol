@@ -352,6 +352,10 @@ contract UnitTestsForCoverage is Test {
         uint256 amount,
         uint256 nonce
     ) public pure {
+        // Prevent overflow by limiting inputs
+        vm.assume(amount < type(uint256).max - 1);
+        vm.assume(nonce < type(uint256).max - 1);
+        
         bytes32 commitment1 = AuctionLib.generateCommitment(bidder, amount, nonce);
         bytes32 commitment2 = AuctionLib.generateCommitment(bidder, amount, nonce);
         
@@ -362,8 +366,14 @@ contract UnitTestsForCoverage is Test {
         assertTrue(AuctionLib.verifyCommitment(commitment1, bidder, amount, nonce));
         
         // Wrong parameters should fail
-        if (bidder != address(0x456) || amount != amount + 1 || nonce != nonce + 1) {
-            assertFalse(AuctionLib.verifyCommitment(commitment1, address(0x456), amount + 1, nonce + 1));
+        if (bidder != address(0x456)) {
+            assertFalse(AuctionLib.verifyCommitment(commitment1, address(0x456), amount, nonce));
+        }
+        if (amount < type(uint256).max - 1) {
+            assertFalse(AuctionLib.verifyCommitment(commitment1, bidder, amount + 1, nonce));
+        }
+        if (nonce < type(uint256).max - 1) {
+            assertFalse(AuctionLib.verifyCommitment(commitment1, bidder, amount, nonce + 1));
         }
     }
     
