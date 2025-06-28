@@ -289,7 +289,7 @@ contract HookMinerFixedTest is Test {
         assertEq(addr1, addr2);
     }
     
-    function testFuzz_Find_ValidFlags_Limited(uint16 flags) public pure {
+    function testFuzz_Find_ValidFlags_Limited(uint16 flags) public {
         // Limit to reasonable flag values to avoid gas issues
         if (flags == 0) {
             (address hookAddress, bytes32 salt) = HookMinerFixed.find(
@@ -308,7 +308,7 @@ contract HookMinerFixedTest is Test {
         uint160 validFlags = uint160(flags) & uint160(0x3FFF); // Limit to valid hook flags
         if (validFlags == 0) return;
         
-        try this.tryFind(validFlags) returns (address hookAddr, bytes32 resultSalt) {
+        try this.tryFind(validFlags) returns (address hookAddr, bytes32) {
             assertTrue(uint160(hookAddr) & validFlags == validFlags);
         } catch {
             // Some flag combinations might be too hard to find - that's OK
