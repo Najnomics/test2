@@ -189,7 +189,8 @@ contract HookMinerComprehensive is Test {
         );
         
         assertTrue((uint160(hookAddress) & flags) == flags);
-        assertTrue(salt != bytes32(0));
+        // Salt can be zero if a valid address is found immediately
+        assertTrue(hookAddress != address(0));
     }
     
     function test_Find_MediumFlags() public {

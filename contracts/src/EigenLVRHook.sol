@@ -520,10 +520,9 @@ contract EigenLVRHook is BaseHook, ReentrancyGuard, Ownable, Pausable {
     
     /**
      * @notice Get sqrt price from pool (placeholder for actual implementation)
-     * @param key The pool key
      * @return sqrtPriceX96 The sqrt price in X96 format
      */
-    function _getSqrtPriceFromPool(PoolKey calldata key) internal view returns (uint160) {
+    function _getSqrtPriceFromPool(PoolKey calldata /* key */) internal pure returns (uint160) {
         // PLACEHOLDER: In production, this would call:
         // (uint160 sqrtPriceX96, , , ) = poolManager.getSlot0(key.toId());
         // return sqrtPriceX96;

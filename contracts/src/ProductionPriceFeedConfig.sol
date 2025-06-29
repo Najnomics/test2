@@ -70,7 +70,7 @@ contract ProductionPriceFeedConfig is Ownable {
         // Common tokens on mainnet
         address WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
         address USDC = 0xA0b86a33e6441C4c27D3F50c9d6D14bDf12F4e6e;
-        address USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
+        // address USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7; // Unused for now
         address DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
         address WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
         
@@ -181,13 +181,12 @@ contract ProductionPriceFeedConfig is Ownable {
      * @param token0 First token
      * @param token1 Second token
      * @param priceFeed Chainlink price feed address
-     * @param description Human readable description
      */
     function _addPriceFeed(
         address token0,
         address token1,
         address priceFeed,
-        string memory description
+        string memory /* description */
     ) internal {
         priceOracle.addPriceFeed(
             Currency.wrap(token0),
@@ -204,14 +203,13 @@ contract ProductionPriceFeedConfig is Ownable {
      * @param token1 Second token
      * @param feed0 Price feed for token0/USD
      * @param feed1 Price feed for token1/USD
-     * @param description Human readable description
      */
     function _addDerivedPriceFeed(
         address token0,
         address token1,
         address feed0,
         address feed1,
-        string memory description
+        string memory /* description */
     ) internal {
         // For derived prices, we use the USD feed of the quote token
         // The oracle will calculate the cross rate internally
