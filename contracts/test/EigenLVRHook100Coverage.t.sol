@@ -360,4 +360,194 @@ contract EigenLVRHook100CoverageTest is Test {
         assertEq(hook.lvrThreshold(), LVR_THRESHOLD);
         assertEq(hook.feeRecipient(), feeRecipient);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                        COMPLETE EDGE CASE COVERAGE
+    //////////////////////////////////////////////////////////////*/
+    
+    function test_EdgeCase_MaximumSwapValues() public {
+        vm.prank(owner);
+        hook.setOperatorAuthorization(operator, true);
+        
+        // Set up extreme price scenarios
+        priceOracle.setPrice(token0, token1, type(uint256).max / 2);
+        hook.setMockPoolPrice(poolKey, 1);
+        
+        SwapParams memory maxParams = SwapParams({
+            zeroForOne: true,
+            amountSpecified: int256(type(uint256).max / 2),
+            sqrtPriceLimitX96: type(uint160).max
+        });
+        
+        // Should handle maximum values without reverting
+        hook.testBeforeSwap(user, poolKey, maxParams, "");
+        hook.testAfterSwap(user, poolKey, maxParams, BalanceDelta.wrap(0), "");
+    }
+    
+    function test_EdgeCase_MinimumSwapValues() public {
+        vm.prank(owner);
+        hook.setOperatorAuthorization(operator, true);
+        
+        // Set up minimum value scenarios
+        priceOracle.setPrice(token0, token1, 1);
+        hook.setMockPoolPrice(poolKey, type(uint256).max / 2);
+        
+        SwapParams memory minParams = SwapParams({
+            zeroForOne: false,
+            amountSpecified: -int256(type(uint256).max / 2),
+            sqrtPriceLimitX96: 1
+        });
+        
+        // Should handle minimum values without reverting
+        hook.testBeforeSwap(user, poolKey, minParams, "");
+        hook.testAfterSwap(user, poolKey, minParams, BalanceDelta.wrap(0), "");
+    }
+    
+    function test_EdgeCase_ZeroValues() public {
+        SwapParams memory zeroParams = SwapParams({
+            zeroForOne: true,
+            amountSpecified: 0,
+            sqrtPriceLimitX96: 0
+        });
+        
+        // Should handle zero values gracefully
+        hook.testBeforeSwap(user, poolKey, zeroParams, "");
+        hook.testAfterSwap(user, poolKey, zeroParams, BalanceDelta.wrap(0), "");
+    }
+    
+    function test_EdgeCase_ReceiveETHDirectly() public {
+        uint256 initialBalance = address(hook).balance;
+        uint256 sendAmount = 5 ether;
+        
+        // Send ETH directly to the hook contract
+        vm.deal(address(this), sendAmount);
+        (bool success,) = address(hook).call{value: sendAmount}("");
+        assertTrue(success);
+        
+        // Verify ETH was received
+        assertEq(address(hook).balance, initialBalance + sendAmount);
+    }
+    
+    function test_EdgeCase_MultipleAuctionCycles() public {
+        vm.prank(owner);
+        hook.setOperatorAuthorization(operator, true);
+        
+        // Cycle through multiple auction creations and resolutions
+        for (uint256 i = 1; i <= 3; i++) {
+            // Setup price deviation
+            priceOracle.setPrice(token0, token1, 1000e18 + (i * 500e18));
+            hook.setMockPoolPrice(poolKey, 1000e18);
+            
+            SwapParams memory params = SwapParams({
+                zeroForOne: true,
+                amountSpecified: int256(1e18 + (i * 5e17)),
+                sqrtPriceLimitX96: 0
+            });
+            
+            // Create auction
+            hook.testBeforeSwap(user, poolKey, params, "");
+            bytes32 auctionId = hook.activeAuctions(poolId);
+            assertTrue(auctionId != bytes32(0));
+            
+            // Fast forward past auction duration
+            vm.warp(block.timestamp + 13);
+            
+            // Submit result
+            vm.prank(operator);
+            hook.submitAuctionResult(auctionId, address(0x777), i * 1e18);
+            
+            // Verify auction completed
+            assertEq(hook.activeAuctions(poolId), bytes32(0));
+        }
+    }
+    
+    function test_EdgeCase_PriceInversion() public {
+        // Test both directions of price comparison
+        Currency lowerToken = Currency.wrap(address(0x100));
+        Currency higherToken = Currency.wrap(address(0x300));
+        
+        // Create pool key with different token order
+        PoolKey memory invertedPoolKey = PoolKey({
+            currency0: higherToken,
+            currency1: lowerToken,
+            fee: 3000,
+            tickSpacing: 60,
+            hooks: IHooks(address(hook))
+        });
+        
+        // Test with inverted tokens
+        priceOracle.setPrice(higherToken, lowerToken, 2000e18);
+        hook.setMockPoolPrice(invertedPoolKey, 1000e18);
+        
+        SwapParams memory params = SwapParams({
+            zeroForOne: true,
+            amountSpecified: 1e18,
+            sqrtPriceLimitX96: 0
+        });
+        
+        hook.testBeforeSwap(user, invertedPoolKey, params, "");
+    }
+    
+    function test_EdgeCase_AllBranchCoverage() public {
+        vm.prank(owner);
+        hook.setOperatorAuthorization(operator, true);
+        
+        // Test pause functionality thoroughly
+        vm.prank(owner);
+        hook.pause();
+        assertTrue(hook.paused());
+        
+        // Operations during pause should behave differently
+        SwapParams memory params = SwapParams({
+            zeroForOne: true,
+            amountSpecified: 1e18,
+            sqrtPriceLimitX96: 0
+        });
+        
+        hook.testBeforeSwap(user, poolKey, params, "");
+        hook.testAfterSwap(user, poolKey, params, BalanceDelta.wrap(0), "");
+        
+        // Unpause and test normal operations
+        vm.prank(owner);
+        hook.unpause();
+        assertFalse(hook.paused());
+        
+        // Set up auction conditions
+        priceOracle.setPrice(token0, token1, 2000e18);
+        hook.setMockPoolPrice(poolKey, 1000e18);
+        
+        // Test all major code paths
+        hook.testBeforeSwap(user, poolKey, params, "");
+        hook.testAfterSwap(user, poolKey, params, BalanceDelta.wrap(0), "");
+    }
+    
+    function test_EdgeCase_ExtremePriceDeviations() public {
+        vm.prank(owner);
+        hook.setOperatorAuthorization(operator, true);
+        
+        // Test with extreme price deviations
+        uint256[] memory oraclePrices = new uint256[](5);
+        oraclePrices[0] = 1; // Extremely low
+        oraclePrices[1] = 1000e18; // Normal
+        oraclePrices[2] = type(uint128).max; // Very high
+        oraclePrices[3] = 0; // Zero (edge case)
+        oraclePrices[4] = type(uint256).max / 1000; // Near maximum
+        
+        uint256 poolPrice = 1000e18;
+        hook.setMockPoolPrice(poolKey, poolPrice);
+        
+        SwapParams memory params = SwapParams({
+            zeroForOne: true,
+            amountSpecified: 1e18,
+            sqrtPriceLimitX96: 0
+        });
+        
+        for (uint256 i = 0; i < oraclePrices.length; i++) {
+            priceOracle.setPrice(token0, token1, oraclePrices[i]);
+            
+            // Each should complete without reverting
+            hook.testBeforeSwap(user, poolKey, params, "");
+            hook.testAfterSwap(user, poolKey, params, BalanceDelta.wrap(0), "");
+        }
+    }
 }
