@@ -8,6 +8,7 @@ import {IPriceOracle} from "../src/interfaces/IPriceOracle.sol";
 
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
 
 // Mock contracts
 contract MockPoolManager {
@@ -255,11 +256,8 @@ contract EigenLVRAdminTests is Test {
         vm.prank(owner);
         hook.setOperatorAuthorization(operator, true);
         
-        // Create a test auction
+        // Create a test auction that's active
         bytes32 auctionId = _createTestAuction();
-        
-        // Fast forward past auction end
-        vm.warp(block.timestamp + hook.MAX_AUCTION_DURATION() + 1);
         
         // Should succeed with authorized operator
         vm.prank(operator);
@@ -269,11 +267,8 @@ contract EigenLVRAdminTests is Test {
     function test_OnlyAuthorizedOperator_Unauthorized() public {
         // Don't authorize operator
         
-        // Create a test auction
+        // Create a test auction that's active
         bytes32 auctionId = _createTestAuction();
-        
-        // Fast forward past auction end
-        vm.warp(block.timestamp + hook.MAX_AUCTION_DURATION() + 1);
         
         // Should fail with unauthorized operator
         vm.prank(operator);
@@ -293,12 +288,29 @@ contract EigenLVRAdminTests is Test {
                             HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
     
-    function _createTestAuction() internal view returns (bytes32) {
-        // Access internal auction creation logic by creating a specific auction ID
+    function _createTestAuction() internal returns (bytes32) {
+        // Create an auction ID
         bytes32 auctionId = keccak256(abi.encodePacked("test", block.timestamp, block.number));
         
-        // We'll manually set up the auction state for testing
-        // In a real test, this would be triggered by a swap
+        // Create a pool ID for the auction
+        bytes32 poolIdBytes = keccak256(abi.encodePacked("test_pool", block.timestamp));
+        
+        // Create the auction using the TestEigenLVRHook helper
+        uint256 startTime = block.timestamp; // Start now
+        uint256 duration = 200; // Duration 
+        
+        hook.testCreateAuction(
+            PoolId.wrap(poolIdBytes),
+            auctionId,
+            startTime,
+            duration,
+            true,  // isActive
+            false  // isComplete
+        );
+        
+        // Fast forward past auction end for submit
+        vm.warp(startTime + duration + 1);
+        
         return auctionId;
     }
     

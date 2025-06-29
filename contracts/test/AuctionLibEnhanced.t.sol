@@ -489,6 +489,9 @@ contract AuctionLibEnhancedTest is Test {
         
         if (!isActive) {
             assertEq(result, 0);
+        } else if (currentTime < startTime) {
+            // Auction hasn't started yet
+            assertEq(result, 0);
         } else {
             uint256 endTime = startTime + duration;
             if (currentTime >= endTime) {

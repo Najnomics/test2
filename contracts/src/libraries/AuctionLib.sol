@@ -115,6 +115,7 @@ library AuctionLib {
         // Safe addition check
         if (auction.startTime > type(uint256).max - auction.duration) {
             // Would overflow, so end time is effectively infinite
+            // But only if we're past the start time
             if (block.timestamp >= auction.startTime) {
                 return type(uint256).max;
             } else {

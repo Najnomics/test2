@@ -275,10 +275,12 @@ contract EigenLVRHook is BaseHook, ReentrancyGuard, Ownable, Pausable {
      * @param poolId The pool ID to auction
      */
     function _startAuction(PoolId poolId) internal {
-        bytes32 auctionId = keccak256(abi.encodePacked(poolId, block.timestamp, block.number));
+        // Skip if there's already an active auction
+        if (activeAuctions[poolId] != bytes32(0)) {
+            return;
+        }
         
-        // Ensure no active auction exists
-        require(activeAuctions[poolId] == bytes32(0), "EigenLVR: auction already active");
+        bytes32 auctionId = keccak256(abi.encodePacked(poolId, block.timestamp, block.number));
         
         // Create new auction
         auctions[auctionId] = AuctionLib.Auction({

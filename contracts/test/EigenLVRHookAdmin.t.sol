@@ -215,13 +215,7 @@ contract EigenLVRHookAdminTest is Test {
         hook.setOperatorAuthorization(operator, true);
         
         // Create auction by triggering a swap
-        priceOracle.setPrice(token0, token1, 2100e18); // 5% deviation
-        SwapParams memory params = SwapParams({
-            zeroForOne: true,
-            amountSpecified: 2e18,
-            sqrtPriceLimitX96: 0
-        });
-        hook.testBeforeSwap(user, poolKey, params, "");
+        _createActiveAuction();
         
         bytes32 auctionId = hook.activeAuctions(poolId);
         
@@ -235,7 +229,7 @@ contract EigenLVRHookAdminTest is Test {
         emit AuctionEnded(auctionId, poolId, winner, winningBid);
         
         vm.prank(operator);
-        hook.testSubmitAuctionResult(auctionId, winner, winningBid);
+        hook.submitAuctionResult(auctionId, winner, winningBid);
         
         // Check auction state
         (
@@ -265,7 +259,7 @@ contract EigenLVRHookAdminTest is Test {
         
         vm.prank(nonOwner);
         vm.expectRevert("EigenLVR: unauthorized operator");
-        hook.testSubmitAuctionResult(auctionId, address(0x777), 5 ether);
+        hook.submitAuctionResult(auctionId, address(0x777), 5 ether);
     }
     
     function test_SubmitAuctionResult_InactiveAuction() public {
@@ -291,7 +285,7 @@ contract EigenLVRHookAdminTest is Test {
         // Don't fast forward time - auction still active
         vm.prank(operator);
         vm.expectRevert("EigenLVR: auction not ended");
-        hook.testSubmitAuctionResult(auctionId, address(0x777), 5 ether);
+        hook.submitAuctionResult(auctionId, address(0x777), 5 ether);
     }
     
     /*//////////////////////////////////////////////////////////////
@@ -354,7 +348,12 @@ contract EigenLVRHookAdminTest is Test {
     //////////////////////////////////////////////////////////////*/
     
     function _createActiveAuction() internal {
+        // Set mock pool price to trigger deviation
+        hook.setMockPoolPrice(poolKey, 2000e18); // Same as oracle default
+        
+        // Set oracle price to create 5% deviation
         priceOracle.setPrice(token0, token1, 2100e18); // 5% deviation
+        
         SwapParams memory params = SwapParams({
             zeroForOne: true,
             amountSpecified: 2e18,

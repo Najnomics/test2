@@ -115,7 +115,7 @@ contract TestEigenLVRHook is EigenLVRHook {
                 payable(msg.sender).transfer(userReward);
                 
                 // Emit the event manually for testing
-                // emit RewardClaimed(poolId, msg.sender, userReward);
+                emit RewardsClaimed(poolId, msg.sender, userReward);
             }
         }
     }
@@ -144,7 +144,7 @@ contract TestEigenLVRHook is EigenLVRHook {
         auction.isActive = false;
         
         // Emit event manually for testing
-        // emit AuctionEnded(auctionId, auction.poolId, winner, winningBid);
+        emit AuctionEnded(auctionId, auction.poolId, winner, winningBid);
     }
     
     // Direct access functions for testing internal state
