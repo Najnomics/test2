@@ -21,6 +21,9 @@ contract TestEigenLVRHook is EigenLVRHook {
     // Test variables to mock pool price
     mapping(bytes32 => uint256) public mockPoolPrices;
     
+    // Allow receiving ETH for testing MEV distribution
+    receive() external payable override {}
+    
     constructor(
         IPoolManager _poolManager,
         IAVSDirectory _avsDirectory,

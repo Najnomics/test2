@@ -581,5 +581,5 @@ contract EigenLVRHook is BaseHook, ReentrancyGuard, Ownable, Pausable {
     /**
      * @notice Receive ETH for auction payments
      */
-    receive() external payable {}
+    receive() external payable virtual {}
 }

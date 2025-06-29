@@ -22,6 +22,9 @@ import "./EigenLVRHook.t.sol";
 contract EigenLVRHookAuctionTest is Test {
     using PoolIdLibrary for PoolKey;
 
+    // Allow receiving ETH for testing
+    receive() external payable {}
+
     TestEigenLVRHook public hook;
     MockPoolManager public poolManager;
     MockAVSDirectory public avsDirectory;

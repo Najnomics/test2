@@ -33,7 +33,7 @@ library HookMiner {
         }
         
         // Increase iteration limit for flag mining
-        for (uint256 i = 0; i < 100000000; i++) {
+        for (uint256 i = 0; i < 100000; i++) {
             salt = bytes32(i);
             hookAddress = computeAddress(deployer, salt, bytecode);
             

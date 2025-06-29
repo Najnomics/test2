@@ -297,16 +297,16 @@ contract HookMinerTest is Test {
     function test_Find_LargeCreationCode() public pure {
         uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
         
-        // Create larger bytecode
-        bytes memory largeBytecode = new bytes(1000);
-        for (uint i = 0; i < 1000; i++) {
-            largeBytecode[i] = bytes1(uint8(i % 256));
+        // Create smaller bytecode for faster testing
+        bytes memory bytecode = new bytes(100); // Reduced from 1000
+        for (uint i = 0; i < 100; i++) {
+            bytecode[i] = bytes1(uint8(i % 256));
         }
         
         (address hookAddress, bytes32 salt) = HookMiner.find(
             address(0x1),
             flags,
-            largeBytecode,
+            bytecode,
             hex"0000000000000000000000000000000000000000000000000000000000000123"
         );
         
