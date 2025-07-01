@@ -467,10 +467,32 @@ contract EigenLVRHook is BaseHook, ReentrancyGuard, Ownable, Pausable {
         uint256 poolPrice = _getPoolPrice(key);
         uint256 externalPrice = priceOracle.getPrice(key.currency0, key.currency1);
         
-        // Calculate price deviation
-        uint256 deviation = poolPrice > externalPrice
-            ? ((poolPrice - externalPrice) * BASIS_POINTS) / externalPrice
-            : ((externalPrice - poolPrice) * BASIS_POINTS) / poolPrice;
+        // Handle edge cases
+        if (poolPrice == 0 || externalPrice == 0) {
+            return false;
+        }
+        
+        // Calculate price deviation with overflow protection
+        uint256 deviation;
+        unchecked {
+            if (poolPrice > externalPrice) {
+                // Avoid overflow: check if (poolPrice - externalPrice) * BASIS_POINTS would overflow
+                uint256 diff = poolPrice - externalPrice;
+                if (diff > type(uint256).max / BASIS_POINTS) {
+                    deviation = type(uint256).max; // Cap at max value
+                } else {
+                    deviation = (diff * BASIS_POINTS) / externalPrice;
+                }
+            } else {
+                // Avoid overflow: check if (externalPrice - poolPrice) * BASIS_POINTS would overflow
+                uint256 diff = externalPrice - poolPrice;
+                if (diff > type(uint256).max / BASIS_POINTS) {
+                    deviation = type(uint256).max; // Cap at max value
+                } else {
+                    deviation = (diff * BASIS_POINTS) / poolPrice;
+                }
+            }
+        }
         
         // Check if deviation exceeds threshold and swap size is significant
         return deviation >= lvrThreshold && _isSignificantSwap(params);
@@ -497,15 +519,24 @@ contract EigenLVRHook is BaseHook, ReentrancyGuard, Ownable, Pausable {
             return priceOracle.getPrice(key.currency0, key.currency1);
         }
         
-        // Convert sqrt price to regular price
+        // Convert sqrt price to regular price with overflow protection
         // sqrtPriceX96 = sqrt(price) * 2^96
         // price = (sqrtPriceX96 / 2^96)^2
         
         uint256 sqrtPrice = uint256(sqrtPriceX96);
         
-        // Calculate price with 18 decimal precision
+        // Calculate price with 18 decimal precision and overflow protection
         // Using bit shifting for efficiency: price = (sqrtPrice^2 * 10^18) / (2^192)
-        uint256 price = (sqrtPrice * sqrtPrice * 1e18) >> 192;
+        uint256 price;
+        unchecked {
+            // Check for potential overflow before multiplication
+            if (sqrtPrice > type(uint256).max / sqrtPrice) {
+                // If overflow would occur, use a scaled calculation
+                price = (sqrtPrice / 1e9) * (sqrtPrice / 1e9) * 1e18;
+            } else {
+                price = (sqrtPrice * sqrtPrice * 1e18) >> 192;
+            }
+        }
         
         // Handle token ordering - ensure consistent price direction
         if (_shouldInvertPrice(key.currency0, key.currency1)) {

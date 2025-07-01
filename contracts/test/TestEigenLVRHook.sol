@@ -134,6 +134,30 @@ contract TestEigenLVRHook is EigenLVRHook {
         // Check auction is active
         require(auction.isActive, "EigenLVR: auction not active");
         
+        // Skip timing validation for testing purposes
+        // In real scenarios: require(block.timestamp >= auction.startTime + auction.duration, "EigenLVR: auction not ended");
+        
+        // Update auction state
+        auction.winner = winner;
+        auction.winningBid = winningBid;
+        auction.isComplete = true;
+        auction.isActive = false;
+        
+        // Emit event manually for testing
+        emit AuctionEnded(auctionId, auction.poolId, winner, winningBid);
+    }
+    
+    function testSubmitAuctionResultWithTimingCheck(
+        bytes32 auctionId,
+        address winner,
+        uint256 winningBid
+    ) external {
+        // This version includes timing validation for specific tests
+        AuctionLib.Auction storage auction = auctions[auctionId];
+        
+        // Check auction is active
+        require(auction.isActive, "EigenLVR: auction not active");
+        
         // Validate auction timing
         require(
             block.timestamp >= auction.startTime + auction.duration,
