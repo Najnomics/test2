@@ -235,15 +235,24 @@ contract ProductionDeploymentTest is Test {
         BaseDeployment.DeploymentResult memory result = deployment.run();
         
         // Check that deployment result is stored
-        BaseDeployment.DeploymentResult memory storedResult = deployment.deploymentResult();
+        (
+            address storedHook,
+            address storedPriceOracle,
+            address storedServiceManager,
+            address storedPriceFeedConfig,
+            address storedDeployer,
+            uint256 storedChainId,
+            string memory storedNetworkName,
+            uint256 storedDeploymentTime
+        ) = deployment.deploymentResult();
         
-        assertEq(storedResult.hook, result.hook);
-        assertEq(storedResult.priceOracle, result.priceOracle);
-        assertEq(storedResult.serviceManager, result.serviceManager);
-        assertEq(storedResult.priceFeedConfig, result.priceFeedConfig);
-        assertEq(storedResult.deployer, result.deployer);
-        assertEq(storedResult.chainId, result.chainId);
-        assertEq(storedResult.networkName, result.networkName);
-        assertEq(storedResult.deploymentTime, result.deploymentTime);
+        assertEq(storedHook, result.hook);
+        assertEq(storedPriceOracle, result.priceOracle);
+        assertEq(storedServiceManager, result.serviceManager);
+        assertEq(storedPriceFeedConfig, result.priceFeedConfig);
+        assertEq(storedDeployer, result.deployer);
+        assertEq(storedChainId, result.chainId);
+        assertEq(storedNetworkName, result.networkName);
+        assertEq(storedDeploymentTime, result.deploymentTime);
     }
 }

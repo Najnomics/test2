@@ -59,7 +59,11 @@ contract MultiNetworkDeploymentTest is Test {
         vm.setEnv("FEE_RECIPIENT", vm.toString(feeRecipient));
         
         // Run deployment on single network
-        BaseDeployment.DeploymentResult memory result = deployment.run();
+        BaseDeployment.DeploymentResult[] memory results = deployment.run();
+        
+        // Verify we got results
+        assertTrue(results.length > 0);
+        BaseDeployment.DeploymentResult memory result = results[0];
         
         // Verify deployment result
         assertTrue(result.hook != address(0));
@@ -110,7 +114,9 @@ contract MultiNetworkDeploymentTest is Test {
         vm.setEnv("PRIVATE_KEY", vm.toString(deployerPrivateKey));
         vm.setEnv("FEE_RECIPIENT", vm.toString(feeRecipient));
         
-        BaseDeployment.DeploymentResult memory result = deployment.run();
+        BaseDeployment.DeploymentResult[] memory results = deployment.run();
+        assertTrue(results.length > 0);
+        BaseDeployment.DeploymentResult memory result = results[0];
         
         // Verify network-specific configurations are applied
         EigenLVRHook hook = EigenLVRHook(payable(result.hook));
@@ -131,7 +137,9 @@ contract MultiNetworkDeploymentTest is Test {
         // Don't set FEE_RECIPIENT to test default behavior
         vm.setEnv("PRIVATE_KEY", vm.toString(deployerPrivateKey));
         
-        BaseDeployment.DeploymentResult memory result = deployment.run();
+        BaseDeployment.DeploymentResult[] memory results = deployment.run();
+        assertTrue(results.length > 0);
+        BaseDeployment.DeploymentResult memory result = results[0];
         
         // Fee recipient should default to deployer
         EigenLVRHook hook = EigenLVRHook(payable(result.hook));
@@ -151,7 +159,9 @@ contract MultiNetworkDeploymentTest is Test {
         vm.setEnv("PRIVATE_KEY", vm.toString(deployerPrivateKey));
         
         // Should work now
-        BaseDeployment.DeploymentResult memory result = deployment.run();
+        BaseDeployment.DeploymentResult[] memory results = deployment.run();
+        assertTrue(results.length > 0);
+        BaseDeployment.DeploymentResult memory result = results[0];
         assertTrue(result.hook != address(0));
     }
     
@@ -164,7 +174,9 @@ contract MultiNetworkDeploymentTest is Test {
         // Deploy on local network
         vm.chainId(31337);
         vm.deal(deployer, 10 ether);
-        BaseDeployment.DeploymentResult memory localResult = deployment.run();
+        BaseDeployment.DeploymentResult[] memory localResults = deployment.run();
+        assertTrue(localResults.length > 0);
+        BaseDeployment.DeploymentResult memory localResult = localResults[0];
         
         // Reset for second deployment
         deployment = new MultiNetworkDeployment();
@@ -174,7 +186,9 @@ contract MultiNetworkDeploymentTest is Test {
         // Deploy on another supported network (using same local for testing)
         vm.chainId(31337);
         vm.deal(deployer, 10 ether);
-        BaseDeployment.DeploymentResult memory secondResult = deployment.run();
+        BaseDeployment.DeploymentResult[] memory secondResults = deployment.run();
+        assertTrue(secondResults.length > 0);
+        BaseDeployment.DeploymentResult memory secondResult = secondResults[0];
         
         // Verify consistent behavior (different addresses but same configuration)
         EigenLVRHook hook1 = EigenLVRHook(payable(localResult.hook));
@@ -191,7 +205,9 @@ contract MultiNetworkDeploymentTest is Test {
         vm.setEnv("PRIVATE_KEY", vm.toString(deployerPrivateKey));
         vm.setEnv("FEE_RECIPIENT", vm.toString(feeRecipient));
         
-        BaseDeployment.DeploymentResult memory result = deployment.run();
+        BaseDeployment.DeploymentResult[] memory results = deployment.run();
+        assertTrue(results.length > 0);
+        BaseDeployment.DeploymentResult memory result = results[0];
         
         // All contracts should be deployed and unique
         assertTrue(result.priceOracle.code.length > 0);
@@ -226,7 +242,9 @@ contract MultiNetworkDeploymentTest is Test {
         vm.setEnv("PRIVATE_KEY", vm.toString(deployerPrivateKey));
         vm.setEnv("FEE_RECIPIENT", vm.toString(_feeRecipient));
         
-        BaseDeployment.DeploymentResult memory result = deployment.run();
+        BaseDeployment.DeploymentResult[] memory results = deployment.run();
+        assertTrue(results.length > 0);
+        BaseDeployment.DeploymentResult memory result = results[0];
         
         EigenLVRHook hook = EigenLVRHook(payable(result.hook));
         assertEq(hook.feeRecipient(), _feeRecipient);
@@ -240,7 +258,9 @@ contract MultiNetworkDeploymentTest is Test {
         vm.setEnv("FEE_RECIPIENT", vm.toString(feeRecipient));
         
         uint256 gasBefore = gasleft();
-        BaseDeployment.DeploymentResult memory result = deployment.run();
+        BaseDeployment.DeploymentResult[] memory results = deployment.run();
+        assertTrue(results.length > 0);
+        BaseDeployment.DeploymentResult memory result = results[0];
         uint256 gasUsed = gasBefore - gasleft();
         
         // Log gas usage for monitoring
@@ -260,18 +280,29 @@ contract MultiNetworkDeploymentTest is Test {
         vm.setEnv("PRIVATE_KEY", vm.toString(deployerPrivateKey));
         vm.setEnv("FEE_RECIPIENT", vm.toString(feeRecipient));
         
-        BaseDeployment.DeploymentResult memory result = deployment.run();
+        BaseDeployment.DeploymentResult[] memory results = deployment.run();
+        assertTrue(results.length > 0);
+        BaseDeployment.DeploymentResult memory result = results[0];
         
         // Check that deployment result is stored
-        BaseDeployment.DeploymentResult memory storedResult = deployment.deploymentResult();
+        (
+            address storedHook,
+            address storedPriceOracle,
+            address storedServiceManager,
+            address storedPriceFeedConfig,
+            address storedDeployer,
+            uint256 storedChainId,
+            string memory storedNetworkName,
+            uint256 storedDeploymentTime
+        ) = deployment.deploymentResult();
         
-        assertEq(storedResult.hook, result.hook);
-        assertEq(storedResult.priceOracle, result.priceOracle);
-        assertEq(storedResult.serviceManager, result.serviceManager);
-        assertEq(storedResult.priceFeedConfig, result.priceFeedConfig);
-        assertEq(storedResult.deployer, result.deployer);
-        assertEq(storedResult.chainId, result.chainId);
-        assertEq(storedResult.networkName, result.networkName);
-        assertEq(storedResult.deploymentTime, result.deploymentTime);
+        assertEq(storedHook, result.hook);
+        assertEq(storedPriceOracle, result.priceOracle);
+        assertEq(storedServiceManager, result.serviceManager);
+        assertEq(storedPriceFeedConfig, result.priceFeedConfig);
+        assertEq(storedDeployer, result.deployer);
+        assertEq(storedChainId, result.chainId);
+        assertEq(storedNetworkName, result.networkName);
+        assertEq(storedDeploymentTime, result.deploymentTime);
     }
 }

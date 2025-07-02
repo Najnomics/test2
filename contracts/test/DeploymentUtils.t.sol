@@ -16,10 +16,16 @@ contract MockPoolManager {
     }
 }
 
-contract MockAVSDirectory {
+contract MockAVSDirectory is IAVSDirectory {
     function registerOperatorToAVS(address, bytes calldata) external pure {}
     function deregisterOperatorFromAVS(address) external pure {}
     function updateAVSMetadataURI(string calldata) external pure {}
+    function isOperatorRegistered(address, address) external pure returns (bool) {
+        return true;  // Mock implementation
+    }
+    function getOperatorStake(address, address) external pure returns (uint256) {
+        return 1 ether;  // Mock stake amount
+    }
 }
 
 contract DeploymentUtilsTest is Test {

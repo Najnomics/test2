@@ -54,7 +54,8 @@ contract DeployHookWithMiningTest is Test {
         (address computedAddr, ) = HookMiner.find(
             address(deployer),
             flags,
-            type(EigenLVRHook).creationCode
+            type(EigenLVRHook).creationCode,
+            abi.encode()  // Empty constructor args
         );
         
         // Should return a valid address
@@ -94,7 +95,8 @@ contract DeployHookWithMiningTest is Test {
         (address minedAddress, bytes32 salt) = HookMiner.find(
             address(this),
             testFlags,
-            hex"00" // Minimal bytecode for testing
+            hex"00", // Minimal bytecode for testing
+            abi.encode() // Empty constructor args
         );
         
         // Verify the mined address has the required flag
@@ -122,7 +124,8 @@ contract DeployHookWithMiningTest is Test {
         (address addr, ) = HookMiner.find(
             _deployer,
             flags,
-            hex"00"
+            hex"00",
+            abi.encode() // Empty constructor args
         );
         
         // Should always find a valid address
@@ -137,7 +140,8 @@ contract DeployHookWithMiningTest is Test {
         (address addr, ) = HookMiner.find(
             address(this),
             0x01, // Simple flag that should be found quickly
-            hex"00"
+            hex"00",
+            abi.encode() // Empty constructor args
         );
         
         uint256 gasUsed = gasBefore - gasleft();
