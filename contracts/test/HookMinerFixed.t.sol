@@ -268,14 +268,14 @@ contract HookMinerFixedTest is Test {
         uint160 hookFlags = uint160(flags) & 0x3FFF; // Limit to reasonable flags
         
         if (hookFlags == 0) {
-            (address hookAddress, bytes32 salt) = HookMiner.find(
+            (address hookAddr, bytes32 salt) = HookMiner.find(
                 address(0x1),
                 hookFlags,
                 hex"60806040",
                 hex"00"
             );
             
-            assertTrue(uint160(hookAddress) & hookFlags == hookFlags);
+            assertTrue(uint160(hookAddr) & hookFlags == hookFlags);
             assertEq(salt, bytes32(0));
             return;
         }

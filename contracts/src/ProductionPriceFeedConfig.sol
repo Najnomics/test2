@@ -202,13 +202,12 @@ contract ProductionPriceFeedConfig is Ownable {
      * @param token0 First token
      * @param token1 Second token
      * @param feed0 Price feed for token0/USD
-     * @param feed1 Price feed for token1/USD
      */
     function _addDerivedPriceFeed(
         address token0,
         address token1,
         address feed0,
-        address feed1,
+        address /* feed1 */,
         string memory /* description */
     ) internal {
         // For derived prices, we use the USD feed of the quote token

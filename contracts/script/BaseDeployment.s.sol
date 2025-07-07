@@ -147,7 +147,7 @@ abstract contract BaseDeployment is Script {
      */
     function _configureSystem(
         EigenLVRHook hook,
-        ChainlinkPriceOracle priceOracle,
+        ChainlinkPriceOracle /* priceOracle */,
         EigenLVRAVSServiceManager serviceManager,
         ProductionPriceFeedConfig priceFeedConfig,
         address deployer
